@@ -28,7 +28,7 @@ export default [
    title: 'Calculate stock',
    route: 'Calculate-stock',
    icon: 'CircleIcon',
-  },
+      },
   
   {
    title: 'Raw plan',
@@ -51,7 +51,7 @@ export default [
    route: 'GameOnlyAdmin',
    icon: 'CircleIcon',
   }, 
-  
+ 
     ],
   },
 

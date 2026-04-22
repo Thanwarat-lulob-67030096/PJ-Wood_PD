@@ -10,7 +10,7 @@
       </div>
 
       <b-row class="mb-3">
-        <b-col md="9">
+        <b-col md="6">
           <b-form-group>
             <template #label>
               <span class="text-primary font-weight-bold" style="font-size: 1.1rem;">
@@ -24,16 +24,31 @@
               label="display"
               placeholder="พิมพ์เพื่อค้นหาเร็ว..."
               @input="handleSelect"
-              class="bg-white shadow-sm custom-v-select mb-2"
-            />
+              class="bg-white shadow-sm custom-v-select"
+            >
+              <template #no-options="{ search }">
+                {{ search.length ? 'ไม่พบข้อมูล "' + search + '"' : 'กรุณาพิมพ์เพื่อค้นหา' }}
+              </template>
+            </v-select>
           </b-form-group>
         </b-col>
         
         <b-col md="3">
+          <b-form-group label="🎯 เป้าหมายผลิตวันนี้:" label-class="text-danger font-weight-bold">
+            <b-form-input 
+              v-model.number="dailyTarget" 
+              type="number" 
+              class="target-input-daily"
+              @input="updateCalculation"
+            />
+          </b-form-group>
+        </b-col>
+
+        <b-col md="3">
           <div class="target-card-fixed shadow-sm border-primary">
-            <div class="target-label">เป้าหมายผลิต</div>
+            <div class="target-label">เป้าหมายทั้งหมดใน PO</div>
             <div class="target-value text-primary">
-              {{ targetQty.toLocaleString() }} <small>ตัว</small>
+              {{ totalPoQty.toLocaleString() }} <small>ตัว</small>
             </div>
           </div>
         </b-col>
@@ -46,75 +61,46 @@
               <tr>
                 <th style="width: 5%" class="text-center">#</th>
                 <th style="width: 15%">PO BATCH
-                  <b-form-input v-model="filterPO" size="sm" placeholder="..." class="mt-1 mt-input" @input="currentPage = 1" />
+                  <b-form-input v-model="filterPO" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
                 <th style="width: 20%">CODE SAP
-                  <b-form-input v-model="filterSAP" size="sm" placeholder="..." class="mt-1 mt-input" @input="currentPage = 1" />
+                  <b-form-input v-model="filterSAP" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
                 <th style="width: 45%">DESCRIPTION (รายการ)
-                  <b-form-input v-model="filterName" size="sm" placeholder="..." class="mt-1 mt-input" @input="currentPage = 1" />
+                  <b-form-input v-model="filterName" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
                 <th style="width: 15%">COLOR (สี)
-                  <b-form-input v-model="filterColor" size="sm" placeholder="..." class="mt-1 mt-input" @input="currentPage = 1" />
+                  <b-form-input v-model="filterColor" size="sm" class="mt-1 mt-input" @input="currentPage = 1" />
                 </th>
               </tr>
             </thead>
             <tbody class="small">
-              <tr 
-                v-for="(p, i) in paginatedPlans" 
-                :key="i" 
-                @click="handleSelect(p)"
-                class="cursor-pointer plan-row"
-              >
-                <td class="align-middle text-center text-muted">
-                  {{ (currentPage - 1) * perPage + (i + 1) }}
-                </td>
+              <tr v-for="(p, i) in paginatedPlans" :key="i" @click="handleSelect(p)" class="cursor-pointer plan-row">
+                <td class="align-middle text-center text-muted">{{ (currentPage - 1) * perPage + (i + 1) }}</td>
                 <td class="align-middle">{{ p.po }}</td>
                 <td class="align-middle font-weight-bold">{{ p.sap }}</td>
                 <td class="align-middle">{{ p.name }}</td>
                 <td class="align-middle">{{ p.color }}</td>
               </tr>
-              <tr v-if="filteredPlans.length === 0">
-                <td colspan="5" class="text-center py-5 text-muted">ไม่พบข้อมูลที่ค้นหา</td>
-              </tr>
             </tbody>
           </table>
         </div>
-
         <div class="d-flex justify-content-between align-items-center mt-3 px-1">
-          <div class="text-muted small font-weight-bold">
-            แสดง {{ Math.min(filteredPlans.length, (currentPage - 1) * perPage + 1) }} 
-            ถึง {{ Math.min(filteredPlans.length, currentPage * perPage) }} 
-            จากทั้งหมด {{ filteredPlans.length }} รายการ
-          </div>
-          <b-pagination
-            v-model="currentPage"
-            :total-rows="filteredPlans.length"
-            :per-page="perPage"
-            first-number
-            last-number
-            align="right"
-            class="mb-0 pagination-purple"
-          />
+          <div class="text-muted small font-weight-bold">แสดงทั้งหมด {{ filteredPlans.length }} รายการ</div>
+          <b-pagination v-model="currentPage" :total-rows="filteredPlans.length" :per-page="perPage" align="right" class="mb-0 pagination-purple" />
         </div>
       </div>
 
       <div v-else class="bom-detail-area mt-4">
-        <div class="px-3 py-2 bg-light border rounded mb-3 d-flex justify-content-between align-items-center">
+        <div class="px-3 py-2 bg-light border rounded mb-3 d-flex justify-content-between align-items-center shadow-sm">
           <div>
             <span class="badge badge-primary mr-2">SELECTED</span>
-            <strong>PO:</strong> {{ selectedPlan.po }} | <strong>SAP:</strong> {{ selectedPlan.sap }} | {{ selectedPlan.name }} | <strong>สี:</strong> {{ selectedPlan.color }}
+            <strong>PO:</strong> {{ selectedPlan.po }} | <strong>SAP:</strong> {{ selectedPlan.sap }} | <strong>วันนี้ผลิต:</strong> <span class="text-danger font-weight-bold">{{ dailyTarget.toLocaleString() }} ตัว</span>
           </div>
-          <b-button variant="outline-danger" size="sm" @click="clearSelection">ยกเลิกรายการ</b-button>
+          <b-button variant="outline-danger" size="sm" @click="clearSelection">ยกเลิก/เปลี่ยนรายการ</b-button>
         </div>
 
-        <b-button 
-          v-ripple.400="'rgba(255, 255, 255, 0.15)'"
-          variant="dark"
-          class="mb-3 font-weight-bold shadow-sm" 
-          @click="printOrder" 
-          block
-        >
+        <b-button v-ripple.400="'rgba(255, 255, 255, 0.15)'" variant="dark" class="mb-3 font-weight-bold shadow-sm" @click="printOrder" block>
           🖨️ พิมพ์ใบสั่งผลิตชิ้นส่วน (A4)
         </b-button>
 
@@ -126,29 +112,20 @@
                 <th>รหัส (Part Code)</th>
                 <th style="width: 35%">รายการชิ้นส่วน</th>
                 <th class="text-center">ต่อตัว</th>
-                <th class="text-center">ต้องใช้</th>
+                <th class="text-center">ต้องใช้ (วันนี้)</th>
                 <th class="text-center bg-gray">สต็อก </th>
-                <th class="bg-orange text-white text-center">ผลิตเพิ่ม</th>
-                <th class="bg-danger text-white text-center">ค้างผลิต</th>
+                <th class="bg-orange text-white text-center">ผลิตเพิ่มวันนี้</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, index) in tableData" :key="index">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td class="text-center text-muted small">{{ index + 1 }}</td>
                 <td class="text-center font-weight-bold">{{ row.partCode }}</td>
                 <td class="pl-1">{{ row.itemName }}</td>
                 <td class="text-center">{{ row.perUnit }}</td>
                 <td class="text-center text-primary font-weight-bold">{{ row.totalNeed.toLocaleString() }}</td>
                 <td class="text-center bg-gray-light">{{ row.stock.toLocaleString() }}</td>
-                <td class="text-center bg-orange-light text-orange font-weight-bolder">
-                  {{ row.toProduce.toLocaleString() }}
-                </td>
-                <td class="text-center bg-danger-light text-danger font-weight-bold">
-                  {{ row.toProduce.toLocaleString() }}
-                </td>
-              </tr>
-              <tr v-if="tableData.length === 0">
-                <td colspan="8" class="text-center py-5">❌ ไม่พบข้อมูลชิ้นส่วนประกอบสำหรับ SAP นี้</td>
+                <td class="text-center bg-orange-light text-orange font-weight-bolder">{{ row.toProduce.toLocaleString() }}</td>
               </tr>
             </tbody>
           </table>
@@ -158,33 +135,31 @@
 
     <div id="print-isolation-layer" class="print-only">
       <h1 class="text-center font-weight-bold mb-4">ใบสั่งผลิตชิ้นส่วน (Production Order)</h1>
-      <div class="print-header-info">
-        <div>
-          <p><strong>Project Order:</strong> {{ selectedPlan ? selectedPlan.po : '-' }}</p>
-          <p><strong>รหัสสินค้า (fg code):</strong> {{ selectedPlan ? selectedPlan.sap : '-' }}</p>
-          <p><strong>รายการ:</strong> {{ selectedPlan ? selectedPlan.name : '-' }}</p>
+      <div class="print-header-info border-bottom pb-2 mb-3" style="position: relative;">
+        <div class="d-flex justify-content-between">
+          <div>
+            <p><strong>Project Order:</strong> {{ selectedPlan ? selectedPlan.po : '-' }}</p>
+            <p><strong>SAP Code:</strong> {{ selectedPlan ? selectedPlan.sap : '-' }}</p>
+            <p><strong>รายการ:</strong> {{ selectedPlan ? selectedPlan.name : '-' }}</p>
+          </div>
+          <div class="text-right">
+            <p><strong>วันที่สั่งผลิต:</strong> {{ new Date().toLocaleDateString('th-TH') }}</p>
+            <p><strong>สี (Color):</strong> {{ selectedPlan ? selectedPlan.color : '-' }}</p>
+          </div>
         </div>
-        <div class="text-right">
-          <p><strong>วันที่พิมพ์:</strong> {{ new Date().toLocaleDateString('th-TH') }}</p>
-          <p><strong>สี (Color):</strong> {{ selectedPlan ? selectedPlan.color : '-' }}</p>
-        </div>
+        <p style="position: absolute; top: 0; right: 0; font-size: 1.4rem; font-weight: bold;">เป้าหมายวันนี้: {{ dailyTarget.toLocaleString() }} ตัว</p>
       </div>
-      <div class="print-target-banner mb-4">
-        เป้าหมายผลิตทั้งหมด: {{ targetQty.toLocaleString() }} ตัว
-      </div>
-      <table class="table-print">
+      <table class="table-print mb-5">
         <thead>
           <tr>
             <th>#</th>
-            <th>รหัส (Part Code)</th>
-            <th style="width: 30%">รายการ (Item Name)</th>
+            <th>รหัสชิ้นส่วน</th>
+            <th style="width: 35%">รายการชิ้นส่วน</th>
             <th>ต่อตัว</th>
-            <th>ต้องผลิต</th>
+            <th>ต้องใช้</th>
             <th>สต็อก</th>
-            <th class="bg-print-gray">ผลิตเพิ่ม</th>
-            <th class="bg-print-gray">ค้างผลิต</th>
-            <th>เบิกสี</th>
-            <th>ของเสีย</th>
+            <th>ผลิตเพิ่ม</th>
+            <th>หมายเหตุ</th>
           </tr>
         </thead>
         <tbody>
@@ -193,15 +168,33 @@
             <td class="text-center font-weight-bold">{{ row.partCode }}</td>
             <td class="pl-2">{{ row.itemName }}</td>
             <td class="text-center">{{ row.perUnit }}</td>
-            <td class="text-center">{{ row.totalNeed.toLocaleString() }}</td>
+            <td class="text-center font-weight-bold">{{ row.totalNeed.toLocaleString() }}</td>
             <td class="text-center">{{ row.stock.toLocaleString() }}</td>
-            <td class="text-center font-weight-bold">{{ row.toProduce.toLocaleString() }}</td>
-            <td class="text-center font-weight-bold">{{ row.toProduce.toLocaleString() }}</td>
-            <td class="text-center"></td>
-            <td class="text-center"></td>
+            <td class="text-center font-weight-bold" style="font-size: 1.1rem;">{{ row.toProduce.toLocaleString() }}</td>
+            <td></td>
           </tr>
         </tbody>
       </table>
+
+      <div class="print-footer mt-5">
+        <div class="d-flex justify-content-between text-center">
+          <div style="width: 30%;">
+            <p>__________________________</p>
+            <p>ผู้ออกเอกสาร</p>
+            <p>วันที่: ___/___/___</p>
+          </div>
+          <div style="width: 30%;">
+            <p>__________________________</p>
+            <p><strong>ฝ่ายผลิต (ผู้รับงาน)</strong></p>
+            <p>วันที่: ___/___/___</p>
+          </div>
+          <div style="width: 30%;">
+            <p>__________________________</p>
+            <p>ผู้ตรวจสอบ / QC</p>
+            <p>วันที่: ___/___/___</p>
+          </div>
+        </div>
+      </div>
     </div>
   </b-card>
 </template>
@@ -217,20 +210,10 @@ export default {
   directives: { Ripple },
   data() {
     return {
-      loading: false,
-      allPlans: [],
-      stockMap: {},
-      bomDatabase: {},
-      searchTemp: null, 
-      selectedPlan: null, 
-      targetQty: 0,
-      tableData: [],
-      filterPO: '',
-      filterSAP: '',
-      filterName: '',
-      filterColor: '',
-      currentPage: 1,
-      perPage: 15
+      loading: false, allPlans: [], stockMap: {}, bomDatabase: {},
+      searchTemp: null, selectedPlan: null, totalPoQty: 0, dailyTarget: 0,
+      tableData: [], filterPO: '', filterSAP: '', filterName: '', filterColor: '',
+      currentPage: 1, perPage: 15
     }
   },
   computed: {
@@ -244,8 +227,7 @@ export default {
     },
     paginatedPlans() {
       const start = (this.currentPage - 1) * this.perPage;
-      const end = start + this.perPage;
-      return this.filteredPlans.slice(start, end);
+      return this.filteredPlans.slice(start, start + this.perPage);
     }
   },
   mounted() { this.fetchData() },
@@ -262,9 +244,7 @@ export default {
         resStock.data.split(/\r?\n/).forEach((line, i) => {
           if (i === 0 || !line) return
           const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-          const code = (cols[1] || "").replace(/"/g, '').trim();
-          const val = (cols[7] || "0").replace(/[",]/g, '').trim();
-          tempStockMap[code] = parseInt(val) || 0
+          tempStockMap[(cols[1] || "").replace(/"/g, '').trim()] = parseInt((cols[7] || "0").replace(/[",]/g, '')) || 0
         })
         this.stockMap = Object.freeze(tempStockMap)
 
@@ -275,58 +255,38 @@ export default {
           const c = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
           let currentSap = (c[0] || "").replace(/"/g, '').trim();
           if (currentSap) lastSap = currentSap
-          const pCode = (c[2] || "").replace(/"/g, '').trim();
-          const pName = (c[3] || "").replace(/"/g, '').trim();
-          const qty = parseFloat((c[5] || "0").replace(/[",]/g, '')) || 0
-          if (lastSap && pCode) {
+          if (lastSap) {
             if (!tempDB[lastSap]) tempDB[lastSap] = []
-            tempDB[lastSap].push({ code: pCode, name: pName, perUnit: qty })
+            tempDB[lastSap].push({ code: (c[2] || "").replace(/"/g, ''), name: (c[3] || "").replace(/"/g, ''), perUnit: parseFloat((c[5] || "0").replace(/[",]/g, '')) || 0 })
           }
         })
         this.bomDatabase = Object.freeze(tempDB)
 
-        const pLines = resPlan.data.split(/\r?\n/)
-        const plans = pLines.slice(1).map(line => {
+        this.allPlans = Object.freeze(resPlan.data.split(/\r?\n/).slice(1).map(line => {
           if (!line) return null
           const c = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-          const sap = (c[3] || "").replace(/"/g, '').trim();
-          if (!sap) return null
-          const po = (c[2] || "").replace(/"/g, '').trim();
-          const name = (c[6] || "").replace(/"/g, '').trim();
-          const color = (c[7] || "").replace(/"/g, '').trim();
-          return { po, sap, name, color, qty: parseInt((c[8] || "0").replace(/[",]/g, '')) || 0,
-            display: `PO: ${po} | SAP: ${sap} | ${name} | ${color}` }
-        }).filter(v => v !== null)
-        this.allPlans = Object.freeze(plans.sort((a, b) => a.name.localeCompare(b.name, 'th')))
+          return { po: (c[2] || "").replace(/"/g, ''), sap: (c[3] || "").replace(/"/g, ''), name: (c[6] || "").replace(/"/g, ''), color: (c[7] || "").replace(/"/g, ''), qty: parseInt((c[8] || "0").replace(/[",]/g, '')) || 0, display: `PO: ${c[2]} | SAP: ${c[3]} | ${c[6]}` }
+        }).filter(v => v !== null).sort((a, b) => a.name.localeCompare(b.name, 'th')))
       } catch (err) { console.error(err) } finally { this.loading = false }
-    },
-    customFilter(options, search) {
-      if (!search) return options.slice(0, 50);
-      const s = search.toLowerCase();
-      return options.filter(o => o.display.toLowerCase().includes(s)).slice(0, 50);
     },
     handleSelect(val) {
       if (val) {
-        this.selectedPlan = val;
-        this.calculateBOM(val);
+        this.selectedPlan = val; this.totalPoQty = val.qty; this.dailyTarget = val.qty;
+        this.updateCalculation();
         setTimeout(() => { this.searchTemp = null; }, 50);
       }
     },
-    clearSelection() {
-      this.selectedPlan = null;
-      this.tableData = [];
-      this.targetQty = 0;
-    },
-    calculateBOM(val) {
-      this.targetQty = val.qty
-      const components = this.bomDatabase[val.sap] || []
+    updateCalculation() {
+      if (!this.selectedPlan) return;
+      const components = this.bomDatabase[this.selectedPlan.sap] || []
       this.tableData = Object.freeze(components.map(item => {
-        const need = item.perUnit * this.targetQty
+        const need = item.perUnit * this.dailyTarget
         const stock = this.stockMap[item.code] || 0
-        return { partCode: item.code, itemName: item.name, perUnit: item.perUnit,
-          totalNeed: need, stock: stock, toProduce: Math.max(0, need - stock) }
+        return { partCode: item.code, itemName: item.name, perUnit: item.perUnit, totalNeed: need, stock, toProduce: Math.max(0, need - stock) }
       }))
     },
+    clearSelection() { this.selectedPlan = null; this.tableData = []; this.totalPoQty = 0; this.dailyTarget = 0; },
+    customFilter: (options, search) => options.filter(o => o.display.toLowerCase().includes(search.toLowerCase())).slice(0, 50),
     printOrder() { window.print() }
   }
 }
@@ -336,53 +296,74 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
 @import '~vue-select/dist/vue-select.css';
 
-.target-card-fixed {
-  background-color: #f8faff; border: 2px solid #7367f0; border-radius: 12px;
-  padding: 10px; height: 100%; display: flex; flex-direction: column;
-  justify-content: center; align-items: center; text-align: center; min-height: 85px;
-  .target-label { font-size: 0.9rem; font-weight: 600; color: #5e5873; margin-bottom: 2px; }
-  .target-value { font-size: 2rem; font-weight: 800; line-height: 1; small { font-size: 0.9rem; color: #6e6b7b; } }
-}
-
-.cursor-pointer { cursor: pointer; }
-.plan-row {
-  transition: background 0.2s;
-  &:hover { background-color: rgba(115, 103, 240, 0.08) !important; }
-}
-.mt-input { height: 32px; font-size: 0.75rem; border-radius: 4px; }
-
-.pagination-purple {
-  ::v-deep .page-item {
-    &.active .page-link { background-color: #7367f0 !important; border-color: #7367f0 !important; color: #fff !important; }
-    .page-link { color: #6e6b7b; border: none; background-color: #f3f2f7; margin: 0 3px; border-radius: 6px; padding: 8px 14px; font-weight: 600; }
-    &.disabled .page-link { background-color: #f8f8f8; color: #b9b9c3; }
-  }
-}
-
-.table-bom {
-  width: 100%; border-collapse: collapse;
-  th, td { border: 1px solid #dae1e7; padding: 10px 8px; vertical-align: middle; font-size: 0.85rem; }
-  th { background-color: #5d5fef; color: white; text-align: center; }
-  .bg-gray-light { background-color: #f8f8f8; }
-  .bg-orange-light { background-color: rgba(255, 159, 67, 0.12); }
-  .text-orange { color: #ff9f43 !important; }
-  .bg-danger-light { background-color: rgba(234, 84, 85, 0.12); }
-}
-
+/* ปรับแต่ง v-select ให้เหมือนในรูป */
 ::v-deep .custom-v-select {
-  .vs__dropdown-toggle { border: 1px solid #d8d6de !important; border-radius: 0.357rem !important; padding: 6px 8px !important; }
+  .vs__dropdown-toggle {
+    border: 1px solid #d8d6de !important;
+    border-radius: 0.357rem !important;
+    padding: 6px 8px !important;
+    background-color: #fff;
+    min-height: 42px;
+  }
+  .vs__search::placeholder { color: #b9b9c3; font-size: 0.95rem; }
+  .vs__search { margin-top: 0 !important; color: #6e6b7b; }
 }
+
+.target-input-daily { border: 2px solid #ea5455 !important; font-size: 1.2rem; font-weight: 700; color: #ea5455; text-align: center; }
+.target-card-fixed { background-color: #f8faff; border: 2px solid #7367f0; border-radius: 12px; padding: 10px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 85px; .target-label { font-size: 0.8rem; font-weight: 600; color: #5e5873; } .target-value { font-size: 1.6rem; font-weight: 800; } }
+.cursor-pointer { cursor: pointer; }
+.plan-row:hover { background-color: rgba(115, 103, 240, 0.08) !important; }
+.mt-input { height: 32px; font-size: 0.75rem; }
+.pagination-purple { ::v-deep .page-item.active .page-link { background-color: #7367f0 !important; border-color: #7367f0 !important; } ::v-deep .page-link { color: #6e6b7b; border: none; background: #f3f2f7; margin: 0 3px; border-radius: 6px; } }
+.table-bom { width: 100%; border-collapse: collapse; th, td { border: 1px solid #dae1e7; padding: 10px 8px; vertical-align: middle; font-size: 0.85rem; } th { background-color: #5d5fef; color: white; text-align: center; } .bg-orange-light { background-color: rgba(255, 159, 67, 0.1); } .text-orange { color: #ff9f43; font-weight: bold; } }
 
 .print-only { display: none; }
-</style>
 
-<style lang="scss">
+/* -------------------------------------------------------------------------- */
+/* โซนแก้ปัญหา Print แล้วเมนูบัง (Absolute Isolation Method)                   */
+/* -------------------------------------------------------------------------- */
 @media print {
-  .no-print, nav, aside, footer, header { display: none !important; }
-  body * { visibility: hidden; }
-  #print-isolation-layer, #print-isolation-layer * { visibility: visible; }
-  #print-isolation-layer { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 0.5cm; }
-  .table-print { width: 100%; border-collapse: collapse; th, td { border: 1.5px solid #000 !important; padding: 8px 5px; font-size: 10pt; } }
-  .print-target-banner { border: 2px solid #000; background: #eee !important; text-align: center; font-size: 1.4rem; font-weight: bold; padding: 10px; }
+  /* 1. ซ่อนเนื้อหาทั้งหมดใน body เพื่อไม่ให้มากวนพื้นที่ */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. บังคับซ่อนเมนู Navbar Sidebar ต่างๆ ของ Template (ป้องกันการกินพื้นที่กระดาษ) */
+  nav, aside, header, footer, .sidebar, .menu, .navbar, .header-navbar, .main-menu {
+    display: none !important;
+  }
+
+  /* 3. เปิดการมองเห็นเฉพาะโครงสร้างเอกสารที่เราจะปริ้น */
+  #print-isolation-layer, #print-isolation-layer * {
+    visibility: visible;
+  }
+
+  /* 4. ดึงเอกสารที่จะปริ้นหลุดออกมาจาก Layout เดิม แล้วแปะทับมุมซ้ายบนของหน้าจอ */
+  #print-isolation-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+  }
+
+  /* 5. จัดรูปแบบตารางกระดาษ */
+  .table-print { 
+    width: 100%; 
+    border-collapse: collapse; 
+    th, td { 
+      border: 1px solid black !important; 
+      padding: 8px 5px; 
+      font-size: 10pt; 
+    } 
+  }
+
+  /* 6. ตั้งค่าหน้ากระดาษ */
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
 }
 </style>

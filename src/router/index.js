@@ -78,6 +78,7 @@ const router = new VueRouter({
         ],
       },
   },
+  
   {
       path: '/Raw-plan',
       name: 'Raw-Plan',

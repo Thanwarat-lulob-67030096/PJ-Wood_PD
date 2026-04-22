@@ -18,7 +18,7 @@
         <div class="game-card rogue-card" @click="launchGame('ROGUE')">
           <div class="card-icon">🛡️</div>
           <h2>Rogue Survivor</h2>
-          <p>เอาชีวิตรอด 6 คลาส จอกว้าง มีระบบเล็งยิงเอง</p>
+          <p>เอาชีวิตรอด 6 คลาส จอกว้าง มีระบบสกิล E</p>
         </div>
       </div>
     </div>
@@ -66,7 +66,12 @@
           <span class="r-gold-text">💰 {{ r_gold }}</span>
         </div>
         <div class="r-exp-bar-bg"><div class="r-exp-bar-fill" :style="{ width: r_expPercent + '%' }"></div></div>
-        <div class="r-timer">Wave: {{ r_wave }} | Time: {{ r_timeLeft }}s ⏳</div>
+        <div class="r-stats-row skill-row">
+          <div class="r-timer">Wave: {{ r_wave }} | Time: {{ r_timeLeft }}s ⏳</div>
+          <div class="skill-status" :class="{ 'ready': r_player.skillReady, 'cooldown': !r_player.skillReady }">
+            [E] {{ r_player.skillName }} ({{ r_player.skillReady ? 'READY' : r_player.skillCDTimer + 's' }})
+          </div>
+        </div>
       </div>
 
       <div 
@@ -119,14 +124,15 @@
         </div>
 
         <div v-if="r_gameState === 'SELECT_CHAR'" class="game-overlay">
-          <h2>เลือกคลาสฮีโร่ของคุณ 🛡️</h2>
+          <h2>เลือกคลาสฮีโร่ของคุณ 🛡️ (สกิล E ใหม่!)</h2>
           <div class="r-char-selection-grid">
-            <div class="r-char-card" @click="r_selectChar('m1')"><div class="sprite preview m-knight"></div><h3>อัศวิน (ช)</h3><p>ดาบฟันกว้าง</p></div>
-            <div class="r-char-card" @click="r_selectChar('m2')"><div class="sprite preview m-archer"></div><h3>นักธนู (ช)</h3><p>ยิงไกล/เดินไว</p></div>
-            <div class="r-char-card" @click="r_selectChar('m3')"><div class="sprite preview m-mage"></div><h3>จอมเวทย์ (ช)</h3><p>เวทย์รุนแรง</p></div>
-            <div class="r-char-card" @click="r_selectChar('f1')"><div class="sprite preview f-dancer"></div><h3>นางรำดาบ (ญ)</h3><p>รวดเร็ว/ดาบพลิ้ว</p></div>
-            <div class="r-char-card" @click="r_selectChar('f2')"><div class="sprite preview f-succubus"></div><h3>ซัคคิวบัส (ญ)</h3><p>เวทย์มืด/ดูดเลือด</p></div>
-            <div class="r-char-card" @click="r_selectChar('f3')"><div class="sprite preview f-bounty"></div><h3>มือปืนสาว (ญ)</h3><p>ปืนคู่/ยิงไกลมาก</p></div>
+            <div class="r-char-card" @click="r_selectChar('m1')"><div class="sprite preview m-knight"></div><h3>นักรบดำ (ช)</h3><p>ดาบใหญ่/กระโดดสับ</p></div>
+            <div class="r-char-card" @click="r_selectChar('m2')"><div class="sprite preview m-hunter"></div><h3>นายพราน (ช)</h3><p>ธนูคู่/ม้วนตัวหลบ</p></div>
+            <div class="r-char-card" @click="r_selectChar('m3')"><div class="sprite preview m-sorcerer"></div><h3>นักเวทย์พรต (ช)</h3><p>คาถา/ระเบิดพลังไฟ</p></div>
+            <div class="r-char-card" @click="r_selectChar('f1')"><div class="sprite preview f-assassin"></div><h3>นินจาสาว (ญ)</h3><p>มีดสั้น/เทเลพอร์ต</p></div>
+            <div class="r-char-card" @click="r_selectChar('f2')"><div class="sprite preview f-priestess"></div><h3>นักบวชหญิง (ญ)</h3><p>คทาพลังแสง/ฟื้น HP</p></div>
+            <div class="r-char-card" @click="r_selectChar('f3')"><div class="sprite preview f-gunner"></div><h3>นักล่าปืน (ญ)
+            </h3><p>ปืนลูกซอง/กราดยิง</p></div>
           </div>
         </div>
 
@@ -159,7 +165,7 @@
       </div>
       
       <div class="controls-hint-box" v-if="r_gameState !== 'SLOTS'">
-        <p>⌨️ <strong>WASD</strong> เดิน | <strong>[Spacebar]</strong> หรือ <strong>[คลิกซ้าย]</strong> โจมตี | <strong>P</strong> พักเกม</p>
+        <p>⌨️ <strong>WASD</strong> เดิน | <strong>[Spacebar]</strong> หรือ <strong>[คลิกซ้าย]</strong> โจมตี | <strong>E</strong> ใช้สกิล | <strong>P</strong> พัก</p>
         <p>🖱️ <strong>[คลิกขวาค้าง]</strong> = เล็งยิงเอง | <strong>[ปล่อย]</strong> = ออโต้ล็อคเป้าใกล้สุด</p>
       </div>
     </div>
@@ -187,7 +193,8 @@ export default {
       
       r_player: { 
         x: 400, y: 300, r: 15, charId: '', className: '', speed: 3, hp: 100, maxHp: 100, 
-        level: 1, exp: 0, nextExp: 100, atkSpeed: 500, damage: 20, facingLeft: false, weaponType: 'melee', attackRange: 50 
+        level: 1, exp: 0, nextExp: 100, atkSpeed: 500, damage: 20, facingLeft: false, weaponType: 'melee', attackRange: 50,
+        skillName: '', skillReady: true, skillCD: 10, skillCDTimer: 0, lastSkillUse: 0,
       },
       r_enemies: [], r_bullets: [], r_enemyBullets: [], r_gems: [], r_coins: [], r_floatingTexts: [], r_slashes: [],
       r_gold: 0, r_wave: 1, r_timeLeft: 30, r_lastShot: 0,
@@ -198,7 +205,8 @@ export default {
         maxHp: { label: '❤️ Max HP +50', cost: 50, run: () => { this.r_player.maxHp += 50; this.r_player.hp += 50; } },
         damage: { label: '⚔️ พลังโจมตี +15', cost: 40, run: () => { this.r_player.damage += 15; } },
         atkSpeed: { label: '🔥 โจมตีรัวขึ้น 10%', cost: 60, run: () => { this.r_player.atkSpeed *= 0.9; } },
-        heal: { label: '🩹 ฟื้นฟูเลือดเต็ม', cost: 30, run: () => { this.r_player.hp = this.r_player.maxHp; } }
+        heal: { label: '🩹 ฟื้นฟูเลือดเต็ม', cost: 30, run: () => { this.r_player.hp = this.r_player.maxHp; } },
+        skillCD: { label: '🌀 สกิลคูลดาวน์เร็วขึ้น 20%', cost: 80, run: () => { this.r_player.skillCD *= 0.8; } },
       }
     };
   },
@@ -248,7 +256,7 @@ export default {
          r_enemyId: parsed.r_enemyId, r_bulletId: parsed.r_bulletId, r_gemId: parsed.r_gemId, r_coinId: parsed.r_coinId, r_textId: parsed.r_textId
       });
       this.globalKeys = {}; this.r_slashes = []; this.r_floatingTexts = []; this.r_isAiming = false;
-      this.r_shopItems = { maxHp: { label: '❤️ Max HP +50', cost: 50, run: () => { this.r_player.maxHp += 50; this.r_player.hp += 50; } }, damage: { label: '⚔️ พลังโจมตี +15', cost: 40, run: () => { this.r_player.damage += 15; } }, atkSpeed: { label: '🔥 โจมตีรัวขึ้น 10%', cost: 60, run: () => { this.r_player.atkSpeed *= 0.9; } }, heal: { label: '🩹 ฟื้นฟูเลือดเต็ม', cost: 30, run: () => { this.r_player.hp = this.r_player.maxHp; } } };
+      this.r_shopItems = { maxHp: { label: '❤️ Max HP +50', cost: 50, run: () => { this.r_player.maxHp += 50; this.r_player.hp += 50; } }, damage: { label: '⚔️ พลังโจมตี +15', cost: 40, run: () => { this.r_player.damage += 15; } }, atkSpeed: { label: '🔥 โจมตีรัวขึ้น 10%', cost: 60, run: () => { this.r_player.atkSpeed *= 0.9; } }, heal: { label: '🩹 ฟื้นฟูเลือดเต็ม', cost: 30, run: () => { this.r_player.hp = this.r_player.maxHp; } }, skillCD: { label: '🌀 สกิลคูลดาวน์เร็วขึ้น 20%', cost: 80, run: () => { this.r_player.skillCD *= 0.8; } }, };
     },
     r_newGameSlot(index) { this.r_currentSlot = index; this.r_gameState = 'SELECT_CHAR'; },
     r_clearCurrentSlot() {
@@ -276,7 +284,10 @@ export default {
         return;
       }
       if (this.appState === 'SNAKE') this.s_handleKeydown(e);
-      else if (this.appState === 'ROGUE' && e.code === 'Space') this.r_playerAttack();
+      else if (this.appState === 'ROGUE') {
+         if (e.code === 'Space') this.r_playerAttack();
+         else if (e.code === 'KeyE') this.r_playerSkill();
+      }
     },
     handleKeyup(e) { this.$set(this.globalKeys, e.code, false); },
 
@@ -325,12 +336,14 @@ export default {
       this.r_player.charId = charId;
       const p = this.r_player;
       
-      if (charId === 'm1') { p.className = 'อัศวิน'; p.hp=150; p.maxHp=150; p.speed=2.5; p.damage=14; p.atkSpeed=500; p.weaponType='melee'; p.attackRange=45; }
-      else if (charId === 'm2') { p.className = 'นักธนู'; p.hp=100; p.maxHp=100; p.speed=3.5; p.damage=10; p.atkSpeed=350; p.weaponType='ranged'; p.attackRange=250; }
-      else if (charId === 'm3') { p.className = 'จอมเวทย์'; p.hp=80; p.maxHp=80; p.speed=2.5; p.damage=18; p.atkSpeed=600; p.weaponType='ranged'; p.attackRange=200; }
-      else if (charId === 'f1') { p.className = 'นางรำดาบ'; p.hp=110; p.maxHp=110; p.speed=3.8; p.damage=14; p.atkSpeed=400; p.weaponType='melee'; p.attackRange=45; }
-      else if (charId === 'f2') { p.className = 'ซัคคิวบัส'; p.hp=85; p.maxHp=85; p.speed=3.2; p.damage=16; p.atkSpeed=550; p.weaponType='ranged'; p.attackRange=250; }
-      else if (charId === 'f3') { p.className = 'มือปืนสาว'; p.hp=95; p.maxHp=95; p.speed=3.5; p.damage=15; p.atkSpeed=300; p.weaponType='ranged'; p.attackRange=350; }
+      p.skillReady = true; p.skillCDTimer = 0; p.lastSkillUse = 0;
+
+      if (charId === 'm1') { p.className = 'นักรบดำ'; p.hp=150; p.maxHp=150; p.speed=2.5; p.damage=14; p.atkSpeed=500; p.weaponType='melee'; p.attackRange=45; p.skillName = 'สับพิฆาต'; p.skillCD = 8; }
+      else if (charId === 'm2') { p.className = 'นายพราน'; p.hp=100; p.maxHp=100; p.speed=3.5; p.damage=10; p.atkSpeed=350; p.weaponType='ranged'; p.attackRange=250; p.skillName = 'ม้วนตัวพริ้ว'; p.skillCD = 5; }
+      else if (charId === 'm3') { p.className = 'นักเวทย์พรต'; p.hp=80; p.maxHp=80; p.speed=2.5; p.damage=18; p.atkSpeed=600; p.weaponType='ranged'; p.attackRange=200; p.skillName = 'คาถาระเบิด'; p.skillCD = 12; }
+      else if (charId === 'f1') { p.className = 'นินจาสาว'; p.hp=110; p.maxHp=110; p.speed=3.8; p.damage=14; p.atkSpeed=400; p.weaponType='melee'; p.attackRange=45; p.skillName = 'วาร์ปมีดบิน'; p.skillCD = 7; }
+      else if (charId === 'f2') { p.className = 'นักบวชหญิง'; p.hp=120; p.maxHp=120; p.speed=3.0; p.damage=12; p.atkSpeed=550; p.weaponType='ranged'; p.attackRange=250; p.skillName = 'รัศมีฮีล'; p.skillCD = 15; }
+      else if (charId === 'f3') { p.className = 'นักล่าปืน'; p.hp=95; p.maxHp=95; p.speed=3.5; p.damage=15; p.atkSpeed=300; p.weaponType='ranged'; p.attackRange=350; p.skillName = 'กราดยิงลูกซอง'; p.skillCD = 10; }
       
       this.r_gold = 0; this.r_wave = 1; p.level = 1; p.exp = 0; p.nextExp = 100; p.x = 400; p.y = 300;
       this.r_prepareWave();
@@ -403,23 +416,116 @@ export default {
             if (this.r_dist(p, e) <= p.attackRange + e.r) {
                e.hp -= p.damage;
                this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 15, text: p.damage, life: 30 });
-               // ดูดเลือดถ้าเป็นซัคคิวบัส
-               if(p.charId === 'f2' && Math.random() < 0.3) { p.hp = Math.min(p.maxHp, p.hp + 2); }
             }
           });
         }
         this.r_lastShot = now;
       }
     },
+    r_playerSkill() {
+       if (this.r_gameState !== 'PLAYING') return;
+       const p = this.r_player;
+       const now = Date.now();
+
+       if (p.skillReady) {
+          let used = false;
+          if (p.charId === 'm1') { // นักรบดำ: กระโดดสับ
+             this.r_slashes.push({ id: this.r_slashId++, x: p.x, y: p.y, r: 100, life: 25, color: '#ff6b6b' });
+             this.r_enemies.forEach(e => {
+                if (this.r_dist(p, e) <= 100 + e.r) {
+                   const dmg = p.damage * 4;
+                   e.hp -= dmg;
+                   this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 20, text: 'CRIT ' + dmg, color: '#f1c40f', life: 40 });
+                }
+             });
+             this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'สับพิฆาต!', color: '#ff6b6b', life: 30 });
+             used = true;
+          } 
+          else if (p.charId === 'm2') { // นายพราน: ม้วนตัวหลบ
+             const dist = 120;
+             const angle = p.facingLeft ? Math.PI : 0;
+             const targetX = p.x + Math.cos(angle) * dist;
+             const targetY = p.y + Math.sin(angle) * dist;
+             p.x = Math.max(15, Math.min(785, targetX));
+             p.y = Math.max(15, Math.min(585, targetY));
+             this.r_slashes.push({ id: this.r_slashId++, x: p.x, y: p.y, r: 40, life: 10, color: '#f1c40f' });
+             this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'ROLL!', color: '#f1c40f', life: 30 });
+             used = true;
+          } 
+          else if (p.charId === 'm3') { // นักเวทย์พรต: คาถาระเบิด
+             const target = this.r_getNearestEnemy();
+             if (target) {
+                this.r_slashes.push({ id: this.r_slashId++, x: target.x, y: target.y, r: 80, life: 20, color: '#3498db' });
+                this.r_enemies.forEach(e => {
+                   if (this.r_dist(target, e) <= 80 + e.r) {
+                      const dmg = p.damage * 3;
+                      e.hp -= dmg;
+                      this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 20, text: dmg, color: '#3498db', life: 30 });
+                   }
+                });
+                this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'ระเบิด!', color: '#3498db', life: 30 });
+                used = true;
+             }
+          } 
+          else if (p.charId === 'f1') { // นินจาสาว: วาร์ปมีดบิน
+             const target = this.r_getNearestEnemy();
+             if (target) {
+                p.x = target.x - (p.facingLeft ? -30 : 30);
+                p.y = target.y;
+                this.r_slashes.push({ id: this.r_slashId++, x: p.x, y: p.y, r: 50, life: 15, color: '#e74c3c' });
+                this.r_enemies.forEach(e => {
+                    if (this.r_dist(p, e) <= 50 + e.r) {
+                       const dmg = p.damage * 2.5;
+                       e.hp -= dmg;
+                       this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 15, text: dmg, color: '#e74c3c', life: 30 });
+                    }
+                });
+                this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'BLINK!', color: '#e74c3c', life: 30 });
+                used = true;
+             }
+          } 
+          else if (p.charId === 'f2') { // นักบวชหญิง: รัศมีฮีล
+             const healAmt = p.maxHp * 0.4;
+             p.hp = Math.min(p.maxHp, p.hp + healAmt);
+             this.r_slashes.push({ id: this.r_slashId++, x: p.x, y: p.y, r: 70, life: 30, color: '#2ecc71' });
+             this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'HEAL +' + Math.floor(healAmt), color: '#2ecc71', life: 40 });
+             used = true;
+          } 
+          else if (p.charId === 'f3') { // นักล่าปืน: กราดยิงลูกซอง
+             for(let i=0; i<8; i++) {
+                const angle = (p.facingLeft ? Math.PI : 0) + (Math.random() - 0.5) * 0.8;
+                this.r_bullets.push({ id: this.r_bulletId++, x: p.x, y: p.y, vx: Math.cos(angle) * (10 + Math.random()*4), vy: Math.sin(angle) * (10 + Math.random()*4), r: 5, damageMultiplier: 0.8 });
+             }
+             this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 20, text: 'กราดยิง!', color: '#8e44ad', life: 30 });
+             used = true;
+          }
+
+          if (used) {
+             p.skillReady = false;
+             p.skillCDTimer = Math.floor(p.skillCD);
+             p.lastSkillUse = now;
+          }
+       }
+    },
     r_update() {
       if (this.r_gameState !== 'PLAYING') return;
       const p = this.r_player;
 
+      // Update Skill CD
+      if (!p.skillReady) {
+         p.skillCDTimer -= 1/60; // Approximate 1 second decrement per second
+         if (p.skillCDTimer <= 0) {
+            p.skillReady = true;
+            p.skillCDTimer = 0;
+            this.r_floatingTexts.push({ id: this.r_textId++, x: p.x, y: p.y - 30, text: '[E] Ready!', color: '#f1c40f', life: 30 });
+         }
+      }
+
       let dx = 0, dy = 0;
       if ((this.globalKeys['KeyW'] || this.globalKeys['ArrowUp']) && p.y > 0) dy -= p.speed;
       if ((this.globalKeys['KeyS'] || this.globalKeys['ArrowDown']) && p.y < 600) dy += p.speed;
-      if ((this.globalKeys['KeyA'] || this.globalKeys['ArrowLeft']) && p.x > 0) { dx -= p.speed; p.facingLeft = true; }
-      if ((this.globalKeys['KeyD'] || this.globalKeys['ArrowRight']) && p.x < 800) { dx += p.speed; p.facingLeft = false; }
+      if ((this.globalKeys['KeyA'] || this.globalKeys['ArrowLeft']) && p.x > 0) { dx -= p.speed; if(!this.r_isAiming) p.facingLeft = true; }
+      if ((this.globalKeys['KeyD'] || this.globalKeys['ArrowRight']) && p.x < 800) { dx += p.speed; if(!this.r_isAiming) p.facingLeft = false; }
       p.x += dx; p.y += dy;
 
       const now = Date.now();
@@ -440,7 +546,7 @@ export default {
         }
       });
 
-      this.r_slashes.forEach((s, i) => { s.x = p.x; s.y = p.y; s.life -= 1; if (s.life <= 0) this.r_slashes.splice(i, 1); });
+      this.r_slashes.forEach((s, i) => { if(p.charId !== 'm1' && p.charId !== 'f1' && s.color !== '#3498db' && s.color !== '#2ecc71') { s.x = p.x; s.y = p.y; } s.life -= 1; if (s.life <= 0) this.r_slashes.splice(i, 1); });
 
       this.r_enemies.forEach((e, ei) => {
         const distToPlayer = this.r_dist(e, p);
@@ -467,10 +573,9 @@ export default {
         if (p.weaponType === 'ranged') {
           this.r_bullets.forEach((b, bi) => {
             if (this.r_dist(e, b) < e.r + b.r) {
-              e.hp -= p.damage; this.r_bullets.splice(bi, 1);
-              this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 10, text: p.damage, life: 30 });
-              // Succubus lifesteal on ranged
-              if(p.charId === 'f2' && Math.random() < 0.2) { p.hp = Math.min(p.maxHp, p.hp + 1); }
+              const dmg = p.damage * (b.damageMultiplier || 1);
+              e.hp -= dmg; this.r_bullets.splice(bi, 1);
+              this.r_floatingTexts.push({ id: this.r_textId++, x: e.x, y: e.y - 10, text: Math.floor(dmg), life: 30 });
             }
           });
         }
@@ -494,6 +599,7 @@ export default {
       this.r_gameState = 'SHOP'; 
       clearInterval(this.r_gameLoop); clearInterval(this.r_spawnTimer); clearInterval(this.r_waveTimer); 
       this.r_enemies = []; this.r_enemyBullets = [];
+      this.r_player.skillReady = true; this.r_player.skillCDTimer = 0; // Reset Skill on Wave End
       this.saveGameData();
     },
     r_buyItem(key) { const item = this.r_shopItems[key]; if (this.r_gold >= item.cost) { this.r_gold -= item.cost; item.run(); item.cost = Math.floor(item.cost * 1.3); } },
@@ -508,7 +614,8 @@ export default {
             { name: 'spd', label: '👟 เดินไวขึ้น', run: () => this.r_player.speed += 0.3 }, 
             { name: 'dmg', label: '⚔️ พลังโจมตีขึ้น', run: () => this.r_player.damage += 5 },
             { name: 'atk', label: '🔥 โจมตีรัวขึ้น', run: () => this.r_player.atkSpeed *= 0.88 }, 
-            { name: 'hp', label: '🛡️ Max HP +20', run: () => { this.r_player.maxHp+=20; this.r_player.hp+=20; } }
+            { name: 'hp', label: '🛡️ Max HP +20', run: () => { this.r_player.maxHp+=20; this.r_player.hp+=20; } },
+            { name: 'scd', label: '🌀 สกิลคูลดาวน์เร็วขึ้น', run: () => this.r_player.skillCD *= 0.85 }
           ];
           if(this.r_player.weaponType === 'melee') uMaps.push({ name: 'rng', label: '🗡️ อาวุธกว้างขึ้น', run: () => this.r_player.attackRange += 10 });
           this.r_upgradeOptions = uMaps.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -529,9 +636,7 @@ export default {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Sarabun:wght@400;700&display=swap');
 
-/* ========================================================================= */
-/* สไตล์พื้นฐานทั่วไป                                                        */
-/* ========================================================================= */
+/* Basic Arcade Styles */
 .arcade-master { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #0d1117; color: #fff; font-family: 'Sarabun', sans-serif; user-select: none; overflow: hidden; }
 h1, h2, h3 { font-family: 'Press Start 2P', 'Sarabun', cursive; margin-bottom: 10px; }
 
@@ -564,7 +669,7 @@ h1, h2, h3 { font-family: 'Press Start 2P', 'Sarabun', cursive; margin-bottom: 1
 .controls-hint-box { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 8px; border: 1px solid #555; text-align: center; margin-top: 15px;}
 .controls-hint-box p { margin: 5px 0; color: #f1c40f; font-size: 0.9rem;}
 
-/* Snake */
+/* Snake Game Styles */
 .snake-score-board { margin-bottom: 20px; font-size: 1.3rem; background: #2c3e50; padding: 10px 25px; border-radius: 12px; border: 2px solid #34495e;} 
 .snake-board-wrapper { padding: 10px; background-color: #34495e; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.5); } 
 .snake-game-board { position: relative; background-color: #1a252f; overflow: hidden; background-image: linear-gradient(#2c3e50 1px, transparent 1px), linear-gradient(90deg, #2c3e50 1px, transparent 1px); background-size: 20px 20px; } 
@@ -576,34 +681,44 @@ h1, h2, h3 { font-family: 'Press Start 2P', 'Sarabun', cursive; margin-bottom: 1
 .s-python { background-color: #e67e22; border-radius: 50%; } .s-green { background-color: #2ecc71; border-radius: 50%; } .s-cobra { background-color: #8e44ad; border-radius: 50%; }
 .snake-selection { width: 500px !important; }
 
-/* Rogue UI */
+/* Rogue Survivor Styles */
 .r-ui-panel { width: 800px; padding: 15px; background: #1f2937; border-bottom: 4px solid #374151; border-radius: 8px 8px 0 0; } 
-.r-stats-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; } 
-.r-exp-bar-bg { width: 100%; height: 12px; background: #111827; border: 2px solid #4b5563; border-radius: 6px; overflow: hidden; } 
+.r-stats-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; align-items: center;} 
+.skill-row { margin-bottom: 0; }
+.r-exp-bar-bg { width: 100%; height: 12px; background: #111827; border: 2px solid #4b5563; border-radius: 6px; overflow: hidden; margin-bottom: 10px;} 
 .r-exp-bar-fill { height: 100%; background: linear-gradient(90deg, #00d2ff, #3a7bd5); transition: width 0.3s; } 
 .r-gold-text { color: #f1c40f; text-shadow: 1px 1px 0 #000; } 
-.r-timer { margin-top: 8px; font-weight: bold; text-align: center; color: #ff9f43; font-size: 1.2rem; } 
-.r-game-world { width: 800px; height: 600px; background-color: #202b20; position: relative; overflow: hidden; border: 4px solid #374151; border-radius: 0 0 8px 8px; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); cursor: crosshair; } 
-.r-game-world::before { content: ""; position: absolute; inset: 0; opacity: 0.1; background-image: radial-gradient(#000 1px, transparent 1px); background-size: 20px 20px; }
+.r-timer { font-weight: bold; color: #ff9f43; font-size: 1.1rem; margin-top: 0; text-align: left;} 
+.skill-status { font-family: 'Press Start 2P', cursive; font-size: 0.7rem; padding: 5px 10px; border-radius: 6px; border: 2px solid; }
+.skill-status.ready { background: #2ecc71; color: #fff; border-color: #27ae60; animation: pulse Ready 1.5s infinite; }
+.skill-status.cooldown { background: #34495e; color: #aaa; border-color: #2c3e50; }
+@keyframes pulseReady { 0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); } }
+
+.r-game-world { width: 800px; height: 600px; background-color: #1a1a1a; position: relative; overflow: hidden; border: 4px solid #374151; border-radius: 0 0 8px 8px; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); cursor: crosshair; } 
+.r-game-world::before { content: ""; position: absolute; inset: 0; opacity: 0.05; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px; }
 
 /* เป้าเล็ง Crosshair */
 .r-crosshair { position: absolute; font-size: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 50; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8)); }
 
-.sprite { position: absolute; background-size: cover; image-rendering: pixelated; transition: transform 0.1s; } 
+.sprite { position: absolute; background-size: cover; image-rendering: pixelated; transition: transform 0.1s; background-position: center;} 
 .sprite.flip { transform: scaleX(-1); }
 
-/* 🌟 แก๊งผู้ชาย 3 คน */
-.m1, .m-knight { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='2' y='1' width='6' height='2' fill='%23bdc3c7'/%3E%3Crect x='3' y='3' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='4' y='5' width='2' height='1' fill='%23c0392b'/%3E%3Crect x='2' y='6' width='6' height='4' fill='%2395a5a6'/%3E%3Crect x='8' y='3' width='1' height='5' fill='%23ecf0f1'/%3E%3C/svg%3E"); } 
-.m2, .m-archer { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='2' y='1' width='6' height='2' fill='%2327ae60'/%3E%3Crect x='3' y='3' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='4' y='5' width='2' height='1' fill='%23c0392b'/%3E%3Crect x='2' y='6' width='6' height='4' fill='%232ecc71'/%3E%3Cpath d='M8,2 Q9,5 8,8 M8,5 L9,5' stroke='%23f39c12' fill='none'/%3E%3C/svg%3E"); } 
-.m3, .m-mage { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpolygon points='5,0 2,2 8,2' fill='%232980b9'/%3E%3Crect x='3' y='2' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%232c3e50'/%3E%3Crect x='4' y='5' width='2' height='1' fill='%23c0392b'/%3E%3Crect x='2' y='5' width='6' height='5' fill='%233498db'/%3E%3Crect x='8' y='1' width='1' height='8' fill='%23d35400'/%3E%3Crect x='7' y='1' width='3' height='2' fill='%23f1c40f'/%3E%3C/svg%3E"); } 
+/* --- 🌟 ตัวละครชุดใหม่ (New Character Sprites) 🌟 --- */
 
-/* 🌟 แก๊งผู้หญิง 3 คน (อัปเดตโมเดลสวยแซ่บ) */
-/* F1: นางรำดาบ (เสื้อแดงครอปโชว์เอว) */
-.f1, .f-dancer { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='3' y='1' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%232980b9'/%3E%3Crect x='6' y='2' width='1' height='1' fill='%232980b9'/%3E%3Crect x='4' y='4' width='2' height='1' fill='%23e74c3c'/%3E%3Crect x='3' y='5' width='4' height='2' fill='%23c0392b'/%3E%3Crect x='3' y='7' width='4' height='1' fill='%23f1c27d'/%3E%3Crect x='3' y='8' width='4' height='1' fill='%23e74c3c'/%3E%3Crect x='3' y='9' width='1' height='1' fill='%23f1c27d'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23f1c27d'/%3E%3Crect x='2' y='1' width='1' height='6' fill='%232c3e50'/%3E%3Crect x='7' y='1' width='1' height='6' fill='%232c3e50'/%3E%3C/svg%3E"); }
-/* F2: ซัคคิวบัส (ปีกค้างคาว เขา ปีศาจสาว) */
-.f2, .f-succubus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='3' y='2' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23e74c3c'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%23e74c3c'/%3E%3Crect x='2' y='1' width='1' height='2' fill='%23c0392b'/%3E%3Crect x='7' y='1' width='1' height='2' fill='%23c0392b'/%3E%3Crect x='4' y='5' width='2' height='3' fill='%238e44ad'/%3E%3Crect x='3' y='8' width='1' height='2' fill='%23f1c27d'/%3E%3Crect x='6' y='8' width='1' height='2' fill='%23f1c27d'/%3E%3Crect x='1' y='4' width='2' height='2' fill='%232c3e50'/%3E%3Crect x='7' y='4' width='2' height='2' fill='%232c3e50'/%3E%3C/svg%3E"); }
-/* F3: มือปืนสาว (กางเกงขาสั้น บูทยาว ถือปืน) */
-.f3, .f-bounty { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='3' y='1' width='4' height='3' fill='%23f1c27d'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='2' width='1' height='1' fill='%23000'/%3E%3Crect x='3' y='4' width='4' height='2' fill='%232980b9'/%3E%3Crect x='3' y='6' width='4' height='1' fill='%23f1c27d'/%3E%3Crect x='3' y='7' width='4' height='1' fill='%2334495e'/%3E%3Crect x='3' y='8' width='1' height='2' fill='%232c3e50'/%3E%3Crect x='6' y='8' width='1' height='2' fill='%232c3e50'/%3E%3Crect x='8' y='4' width='2' height='1' fill='%237f8c8d'/%3E%3C/svg%3E"); }
+/* M1: นักรบดำ (ช) */
+.m1, .m-knight { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='10' height='10' x='11' y='2' fill='%231a1a1a'/%3E%3Crect width='6' height='4' x='13' y='4' fill='%23e74c3c'/%3E%3Crect width='16' height='12' x='8' y='12' fill='%23333'/%3E%3Crect width='6' height='8' x='8' y='24' fill='%231a1a1a'/%3E%3Crect width='6' height='8' x='18' y='24' fill='%231a1a1a'/%3E%3Crect width='4' height='20' x='24' y='6' fill='%23fff'/%3E%3Crect width='8' height='4' x='22' y='22' fill='%23f1c40f'/%3E%3C/svg%3E"); } 
+/* M2: นายพราน (ช) */
+.m2, .m-hunter { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='10' height='10' x='11' y='2' fill='%2327ae60'/%3E%3Crect width='16' height='12' x='8' y='12' fill='%23f39c12'/%3E%3Crect width='6' height='8' x='8' y='24' fill='%232ecc71'/%3E%3Crect width='6' height='8' x='18' y='24' fill='%232ecc71'/%3E%3Cpath d='M22,10 A8,8 0 0,1 22,22 M22,16 L28,16' stroke='%23fff' stroke-width='2' fill='none'/%3E%3C/svg%3E"); } 
+/* M3: นักเวทย์พรต (ช) */
+.m3, .m-sorcerer { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='10' height='10' x='11' y='2' fill='%233498db'/%3E%3Crect width='8' height='4' x='12' y='8' fill='%23fff'/%3E%3Crect width='16' height='12' x='8' y='12' fill='%23fff'/%3E%3Crect width='6' height='8' x='8' y='24' fill='%233498db'/%3E%3Crect width='6' height='8' x='18' y='24' fill='%233498db'/%3E%3Crect width='4' height='22' x='26' y='5' fill='%23d35400'/%3E%3Ccircle cx='28' cy='5' r='3' fill='%233498db'/%3E%3C/svg%3E"); } 
+
+/* 🌟 แก๊งผู้หญิง (ญ) - แก้ไขสัดส่วนให้โค้งเว้า เซ็กซี่ขึ้น (Hourglass, เผยผิว) 🌟 */
+/* F1: นินจาสาว (ผมแดงยาว, บิกินี่ท็อปดำ, เอวคอดเผยผิว, กางเกงขาสั้น, บูทยาว, ถือมีดคู่) */
+.f1, .f-assassin { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='12' height='14' x='10' y='2' fill='%23c0392b' rx='4'/%3E%3Crect width='8' height='8' x='12' y='4' fill='%23f1c27d' rx='2'/%3E%3Crect width='2' height='1' x='13' y='8' fill='%23111'/%3E%3Crect width='2' height='1' x='17' y='8' fill='%23111'/%3E%3Crect width='12' height='5' x='10' y='13' fill='%231a1a1a'/%3E%3Crect width='6' height='4' x='13' y='17' fill='%23f1c27d'/%3E%3Crect width='12' height='4' x='10' y='21' fill='%231a1a1a'/%3E%3Crect width='14' height='2' x='9' y='21' fill='%23e74c3c'/%3E%3Crect width='4' height='7' x='10' y='25' fill='%23f1c27d'/%3E%3Crect width='4' height='7' x='18' y='25' fill='%23f1c27d'/%3E%3Crect width='4' height='4' x='10' y='28' fill='%231a1a1a'/%3E%3Crect width='4' height='4' x='18' y='28' fill='%231a1a1a'/%3E%3Crect width='2' height='10' x='6' y='14' fill='%23bdc3c7'/%3E%3Crect width='2' height='10' x='24' y='14' fill='%23bdc3c7'/%3E%3C/svg%3E"); }
+/* F2: นักบวชหญิง (ผมบลอนด์ยาว, คอร์เซ็ตทองรัดเอวคอด, กระโปรงขาวผ่าข้างโชว์เรียวขา, ถือคทาเวทย์) */
+.f2, .f-priestess { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='12' height='20' x='10' y='2' fill='%23f1c40f' rx='4'/%3E%3Crect width='8' height='8' x='12' y='4' fill='%23f1c27d' rx='2'/%3E%3Crect width='2' height='1' x='13' y='8' fill='%23111'/%3E%3Crect width='2' height='1' x='17' y='8' fill='%23111'/%3E%3Crect width='12' height='6' x='10' y='12' fill='%23fff'/%3E%3Crect width='2' height='4' x='15' y='12' fill='%23f1c27d'/%3E%3Crect width='6' height='4' x='13' y='18' fill='%23d35400'/%3E%3Crect width='14' height='6' x='9' y='22' fill='%23fff'/%3E%3Crect width='4' height='10' x='16' y='22' fill='%23f1c27d'/%3E%3Crect width='4' height='6' x='10' y='26' fill='%23fff'/%3E%3Crect width='2' height='24' x='26' y='6' fill='%23f1c40f'/%3E%3Ccircle cx='27' cy='4' r='4' fill='%2300d2ff'/%3E%3C/svg%3E"); }
+/* F3: นักล่าปืน (หมวกคาวบอย, เกาะอกแดงโชว์เอว, กางเกงยีนส์ขาสั้นฟิตเปรี๊ยะ, บูทยาว Thigh-highs, ถือปืน) */
+.f3, .f-gunner { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='14' height='16' x='9' y='4' fill='%232c3e50' rx='4'/%3E%3Crect width='18' height='3' x='7' y='2' fill='%23d35400' rx='1'/%3E%3Crect width='10' height='4' x='11' y='0' fill='%23d35400'/%3E%3Crect width='8' height='6' x='12' y='5' fill='%23f1c27d' rx='2'/%3E%3Crect width='4' height='2' x='14' y='7' fill='%23111'/%3E%3Crect width='10' height='4' x='11' y='12' fill='%23e74c3c'/%3E%3Crect width='6' height='4' x='13' y='16' fill='%23f1c27d'/%3E%3Crect width='12' height='4' x='10' y='20' fill='%232980b9'/%3E%3Crect width='4' height='3' x='10' y='24' fill='%23f1c27d'/%3E%3Crect width='4' height='3' x='18' y='24' fill='%23f1c27d'/%3E%3Crect width='4' height='6' x='10' y='26' fill='%23111'/%3E%3Crect width='4' height='6' x='18' y='26' fill='%23111'/%3E%3Crect width='12' height='4' x='20' y='14' fill='%237f8c8d'/%3E%3Crect width='4' height='2' x='20' y='18' fill='%23d35400'/%3E%3C/svg%3E"); }
 
 /* Enemies */
 .e-zombie { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='2' y='2' width='6' height='5' fill='%232ecc71'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23c0392b'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%23c0392b'/%3E%3Crect x='4' y='5' width='2' height='1' fill='%232c3e50'/%3E%3Crect x='2' y='7' width='6' height='3' fill='%2334495e'/%3E%3C/svg%3E"); } 
@@ -611,39 +726,39 @@ h1, h2, h3 { font-family: 'Press Start 2P', 'Sarabun', cursive; margin-bottom: 1
 .e-shooter { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='2' y='2' width='6' height='4' fill='%2395a5a6'/%3E%3Crect x='2' y='3' width='6' height='1' fill='%23e74c3c'/%3E%3Crect x='2' y='6' width='6' height='4' fill='%232980b9'/%3E%3Crect x='0' y='6' width='2' height='1' fill='%23333'/%3E%3C/svg%3E"); } 
 .e-boss { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect x='1' y='1' width='8' height='6' fill='%23c0392b'/%3E%3Crect x='2' y='3' width='2' height='1' fill='%23f1c40f'/%3E%3Crect x='6' y='3' width='2' height='1' fill='%23f1c40f'/%3E%3Crect x='3' y='5' width='4' height='1' fill='%23000'/%3E%3Crect x='1' y='7' width='8' height='3' fill='%232c3e50'/%3E%3C/svg%3E"); filter: drop-shadow(0 0 10px red); }
 
-.r-player { z-index: 10; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5)); } 
+.r-player { z-index: 10; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5)); transition: transform 0.1s; } 
 .r-hp-bar-mini { position: absolute; top: -10px; left: -10%; width: 120%; height: 5px; background: #c0392b; border: 1px solid #000; border-radius: 2px; } 
 .r-hp-fill-mini { height: 100%; background: #2ecc71; transition: 0.1s;} 
 
-.r-slash { position: absolute; border: 4px solid #00d2ff; border-radius: 50%; z-index: 5; pointer-events: none; transition: 0.1s; box-shadow: 0 0 15px #00d2ff, inset 0 0 15px #00d2ff; } 
+.r-slash { position: absolute; border: 4px solid #fff; border-radius: 50%; z-index: 5; pointer-events: none; transition: 0.1s; box-shadow: 0 0 15px #fff, inset 0 0 15px #fff; opacity: 1;} 
 .r-bullet { position: absolute; background: #fff; border: 2px solid #f1c40f; border-radius: 50%; box-shadow: 0 0 8px #f1c40f; z-index: 15;} 
 .enemy-bullet { border-color: #e74c3c; box-shadow: 0 0 8px #e74c3c; background: #ff7979;} 
 .r-gem { position: absolute; background: #9b59b6; border: 1px solid #fff; transform: rotate(45deg); box-shadow: 0 0 5px #9b59b6; } 
 .r-coin { position: absolute; background: #f1c40f; border-radius: 50%; border: 2px dashed #d35400; animation: spin 2s linear infinite; } 
 @keyframes spin { 100% { transform: rotate(360deg); } } 
-.r-floating-text { position: absolute; font-weight: bold; font-size: 1.2rem; pointer-events: none; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; z-index: 20; }
+.r-floating-text { position: absolute; font-weight: bold; font-size: 1.1rem; pointer-events: none; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; z-index: 20; font-family: 'Press Start 2P', cursive;}
 
 .slots-container { display: flex; gap: 20px; margin-top: 20px; } 
 .slot-card { background: #2c3e50; border: 3px solid #34495e; border-radius: 12px; padding: 20px; width: 220px; text-align: left; transition: 0.2s;} 
 .slot-card:hover { border-color: #f1c40f; } 
-.slot-card h3 { color: #f1c40f; border-bottom: 2px dashed #555; padding-bottom: 5px; margin-bottom: 10px;} 
+.slot-card h3 { color: #f1c40f; border-bottom: 2px dashed #555; padding-bottom: 5px; margin-bottom: 10px; font-size: 0.9rem;} 
 .slot-card p { font-size: 0.9rem; margin-bottom: 5px; } 
 .slot-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center;} 
 .empty-slot { text-align: center; color: #7f8c8d; } 
 
-.r-char-selection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; width: 600px;} 
-.r-char-card { background: #333; padding: 15px 10px; border-radius: 12px; cursor: pointer; border: 3px solid #555; text-align: center;} 
-.r-char-card h3 { font-size: 0.9rem; margin-bottom: 5px;} 
+.r-char-selection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; width: 650px;} 
+.r-char-card { background: #1f2937; padding: 20px 10px; border-radius: 12px; cursor: pointer; border: 3px solid #374151; text-align: center; transition: all 0.2s;} 
+.r-char-card h3 { font-size: 0.85rem; margin-bottom: 8px;} 
 .r-char-card p { font-size: 0.75rem; color: #aaa; margin:0;} 
-.r-char-card:hover { border-color: #00d2ff; background: #444; transform: scale(1.05);} 
-.preview { position: relative; width: 48px; height: 48px; margin: 0 auto 10px; } 
+.r-char-card:hover { border-color: #00d2ff; background: #2c3e50; transform: translateY(-5px);} 
+.preview { position: relative; width: 64px; height: 64px; margin: 0 auto 10px; } 
 
 .r-shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; width: 80%; } 
-.r-shop-item { padding: 15px; background: #2c3e50; color: white; border: 2px solid #34495e; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; } 
-.r-shop-item:hover:not(:disabled) { border-color: #f1c40f; transform: scale(1.05); } 
+.r-shop-item { padding: 15px; background: #2c3e50; color: white; border: 2px solid #34495e; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: 0.1s;} 
+.r-shop-item:hover:not(:disabled) { border-color: #f1c40f; background: #34495e; } 
 .r-shop-item:disabled { opacity: 0.4; cursor: not-allowed; } 
 
-.r-upgrade-list { display: flex; flex-direction: column; gap: 12px; width: 300px; margin-top: 20px; } 
-.r-upgrade-item { padding: 15px; background: linear-gradient(135deg, #2980b9, #8e44ad); color: white; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; } 
-.r-upgrade-item:hover { transform: scale(1.05); }
+.r-upgrade-list { display: flex; flex-direction: column; gap: 12px; width: 350px; margin-top: 20px; } 
+.r-upgrade-item { padding: 15px; background: linear-gradient(135deg, #2980b9, #8e44ad); color: white; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; transition: 0.1s;} 
+.r-upgrade-item:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
 </style>
