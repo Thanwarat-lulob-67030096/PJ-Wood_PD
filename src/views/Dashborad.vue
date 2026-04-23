@@ -23,7 +23,7 @@
         <div class="stat-body">
           <div class="stat-header">
             <span class="icon">📦</span>
-            <h3>ผลิตได้จริง</h3>
+            <h3>ผลิตได้</h3>
           </div>
           <p class="stat-value">{{ alreadyProduced.toLocaleString() }}</p>
           <div class="status-badge" :class="alreadyProduced >= dailyTarget ? 'bg-light-success' : 'bg-light-danger'">
@@ -50,14 +50,15 @@
     <div class="search-card shadow-sm mb-4 bg-white p-4" style="border-radius: 12px;">
       <div class="d-flex flex-wrap align-items-end">
         <div class="position-relative mr-3" style="flex: 1; max-width: 400px;">
-          <label class="small text-muted font-weight-bold mb-2">ระบุรหัส FG code:</label>
+          <label class="small text-muted font-weight-bold mb-2">ระบุรหัส SAP/FG code:</label>
           <input 
             type="text" 
             v-model="sapInput" 
             class="form-control" 
-            placeholder="กรอกรหัส FG code..." 
+            placeholder="กรอกรหัส SAP/FG code..." 
             @focus="showSuggestions = true"
-            @blur="hideSuggestions"
+            @input="showSuggestions = true" 
+            @blur="handleBlur"
             @keyup.enter="processDisplay"
           >
           
@@ -68,9 +69,8 @@
               @mousedown.prevent="selectSuggestion(item)"
               class="autocomplete-item"
             >
-              <span v-if="item.sap">PO: {{ item.sap }} | </span>
-              <span>SAP: {{ item.code }} | </span>
-              <span>{{ item.name }}</span>
+              <span class="font-weight-bold" style="color: #7367f0;">{{ item.sap }}</span>
+              <span v-if="item.prod" class="text-muted small ml-2">| {{ item.prod }}</span>
             </li>
           </ul>
         </div>
@@ -104,14 +104,14 @@
               <div class="header-section mb-4" style="border-left: 5px solid #7367f0; padding-left: 15px;">
                 <div class="font-weight-bold" style="color: #333; font-size: 1.15rem;">{{ group.name }}</div>
                 <div class="text-muted small mt-1">
-                  รหัสอ้างอิง: <span style="color: #7367f0; font-weight: bold;">{{ sapId }}</span>
+                  รหัส SAP/FG Code: <span style="color: #7367f0; font-weight: bold;">{{ sapId }}</span>
                 </div>
               </div>
               <div :ref="'chartRef' + index" style="width: 100%; height: 380px;"></div>
             </div>
           </div>
           <div v-if="Object.keys(groupedData).length === 0" class="col-12 text-center py-5">
-             <p class="text-muted">ไม่พบข้อมูลในระบบ</p>
+             <p class="text-muted">ไม่พบข้อมูลรหัส SAP/FG Code นี้ในระบบ</p>
           </div>
         </div>
       </div>
@@ -130,10 +130,8 @@ export default {
       dailyTarget: 20000,
       alreadyProduced: 3120,
       currentTime: '',
-
       URL_1: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-sDov5Hl1nWrRBz9jCiiBeatitpYjZp0fqPYngNmvdY1teoDLQrhPBNkMZATc-rktKV37X2Q1qzkm/pub?output=csv",
       URL_2: "https://docs.google.com/spreadsheets/d/e/2PACX-1vShU_0KepJ0kBsIYP6zPhKVuZEE4TbCDyvx81yzPMBbdtO3SJp1kf1bRc4hbFfs4ErULD0oDyK39CkE/pub?output=csv",
-      
       sapInput: "",
       showSuggestions: false,
       isSearching: false,
@@ -147,22 +145,28 @@ export default {
   },
   computed: {
     filteredSuggestions() {
-      if (!this.sapInput) return [];
-      const searchTxt = this.sapInput.toLowerCase();
+      const searchTxt = this.sapInput.trim().toLowerCase();
+      if (!searchTxt) return [];
+
       const uniqueMap = new Map();
-
       this.masterList.forEach(item => {
-        const sapMatch = item.sap && item.sap.toLowerCase().includes(searchTxt);
-        const codeMatch = item.code && item.code.toLowerCase().includes(searchTxt);
-        const nameMatch = item.name && item.name.toLowerCase().includes(searchTxt);
-
-        if (sapMatch || codeMatch || nameMatch) {
-          if (!uniqueMap.has(item.code)) {
-            uniqueMap.set(item.code, item);
+        if (item.sap && item.sap.trim() !== "") {
+          const sapStr = item.sap.toLowerCase();
+          // ค้นหาว่ารหัส SAP มีตัวอักษรที่พิมพ์อยู่หรือไม่
+          if (sapStr.includes(searchTxt)) {
+            if (!uniqueMap.has(item.sap)) {
+              uniqueMap.set(item.sap, {
+                sap: item.sap,
+                prod: item.prod
+              });
+            }
           }
         }
       });
-      return Array.from(uniqueMap.values()).slice(0, 15);
+      
+      // คืนค่ารายการทั้งหมดที่ตรงกัน ให้สามารถเลื่อนดูได้ครบ
+      // (ถ้ากังวลว่าข้อมูลเยอะเป็นหมื่นรายการแล้วเว็บจะค้าง สามารถใส่ .slice(0, 300) ตรงนี้ได้ครับ แต่ถ้าไม่เยอะมากก็ใช้แบบนี้ได้เลย)
+      return Array.from(uniqueMap.values());
     }
   },
   async mounted() {
@@ -198,10 +202,11 @@ export default {
         this.masterList = [];
         masterRows.forEach((row, i) => {
           if (i === 0) return;
-          if (row[0]?.trim()) lastSap = row[0].trim();
-          if (row[1]?.trim()) lastProd = row[1].trim();
+          if (row[0] && String(row[0]).trim() !== "") lastSap = String(row[0]).trim();
+          if (row[1] && String(row[1]).trim() !== "") lastProd = String(row[1]).trim();
+
           const pCode = row[2] ? String(row[2]).trim() : "";
-          const pName = row[3] ? row[3].trim() : pCode;
+          const pName = row[3] ? String(row[3]).trim() : pCode;
 
           if (pCode) {
             const qty = this.stockDictionary[pCode] || 0;
@@ -217,15 +222,18 @@ export default {
     },
 
     selectSuggestion(item) {
-      this.sapInput = item.code; 
+      this.sapInput = item.sap; 
       this.showSuggestions = false;
       this.$nextTick(() => {
         this.processDisplay();
       });
     },
 
-    hideSuggestions() {
-      this.showSuggestions = false;
+    // ฟังก์ชันสำหรับปิด dropdown ตอนคลิกไปที่อื่น (ย้ายมาจาก inline เพื่อกันบัค)
+    handleBlur() {
+      setTimeout(() => {
+        this.showSuggestions = false;
+      }, 200);
     },
 
     processDisplay() {
@@ -234,17 +242,16 @@ export default {
       this.isSearching = search !== "";
 
       const filtered = this.isSearching 
-        ? this.masterList.filter(item => 
-            (item.sap && item.sap.toLowerCase().includes(search)) || 
-            (item.code && item.code.toLowerCase().includes(search)) ||
-            (item.name && item.name.toLowerCase().includes(search))
-          )
+        ? this.masterList.filter(item => item.sap && item.sap.toLowerCase() === search)
         : this.masterList;
 
       const groups = {};
       filtered.forEach(item => {
-        const key = item.sap ? item.sap : item.code;
-        if (!groups[key]) groups[key] = { name: item.prod || item.name, items: [] };
+        const key = item.sap;
+        if (!key) return;
+        if (!groups[key]) {
+          groups[key] = { name: item.prod || "ไม่มีชื่อรายการ", items: [] };
+        }
         groups[key].items.push(item);
       });
       
@@ -336,77 +343,52 @@ export default {
 
 <style scoped>
 .dashboard-wrapper { padding: 25px; background-color: #f8f7fa; min-height: 100vh; font-family: 'Public Sans', sans-serif; }
-
-/* ยอดผลิต Stats Grid */
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .stat-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #ebe9f1; }
 .card-indicator { height: 5px; width: 100%; }
 .card-indicator.purple { background-color: #7367f0; }
 .card-indicator.green { background-color: #28c76f; }
 .card-indicator.red { background-color: #ea5455; }
-
 .stat-body { padding: 20px; }
 .stat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .stat-header h3 { font-size: 0.95rem; font-weight: 600; color: #5e5873; margin: 0; }
 .stat-value { font-size: 1.8rem; font-weight: 700; color: #5e5873; margin: 5px 0; }
-.stat-label { font-size: 0.85rem; }
-
 .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
 .bg-light-success { background: rgba(40, 199, 111, 0.12); color: #28c76f; }
 .bg-light-danger { background: rgba(234, 84, 85, 0.12); color: #ea5455; }
-.text-success { color: #28c76f !important; }
-.text-danger { color: #ea5455 !important; }
-
-/* Search Custom Styles */
-.custom-btn-search {
-  background-color: #7367f0 !important;
-  border-color: #7367f0 !important;
-  color: white;
-  border-radius: 6px;
-}
-.custom-btn-seeall {
-  color: #6e6b7b;
-  border-color: #d8d6de;
-  border-radius: 6px;
-}
-
-/* Search & Charts */
+.custom-btn-search { background-color: #7367f0 !important; border-color: #7367f0 !important; color: white; border-radius: 6px; }
+.custom-btn-seeall { color: #6e6b7b; border-color: #d8d6de; border-radius: 6px; }
 .chart-card { border: none !important; transition: transform 0.2s; background: #fff; }
 .chart-card:hover { transform: translateY(-3px); }
 
-/* Autocomplete Custom Styling */
 .custom-autocomplete {
   position: absolute;
   top: 100%;
-  left: 0; /* เปลี่ยนให้ติดขอบซ้ายของกรอบค้นหา */
-  right: 0; /* ยืดสุดถึงขอบขวาของกรอบค้นหา */
+  left: 0; 
+  right: 0; 
   background-color: #ffffff;
   border: 1px solid #d8d6de;
   border-radius: 0 0 6px 6px;
   margin-top: 2px;
   padding: 0;
   list-style: none;
-  max-height: 280px;
+  max-height: 350px; 
   overflow-y: auto;
   z-index: 1000;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
 }
 .autocomplete-item {
-  padding: 10px 15px;
-  font-size: 0.9rem;
+  padding: 12px 15px;
+  font-size: 0.95rem;
   color: #6e6b7b;
   cursor: pointer;
   border-bottom: 1px solid #ebe9f1;
 }
-.autocomplete-item:last-child {
-  border-bottom: none;
-}
 .autocomplete-item:hover {
-  background-color: #7367f0;
-  color: #ffffff;
+  background-color: #f8f7fa;
+  color: #7367f0;
 }
-
 @media (max-width: 992px) {
   .stats-grid { grid-template-columns: 1fr; }
-  .custom-autocomplete { left: 0; right: 0; }
 }
 </style>
