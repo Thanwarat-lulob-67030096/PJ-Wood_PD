@@ -100,7 +100,8 @@
                 {{ isSearching ? 'ยอดสต็อกตามการค้นหา (Filtered Summary)' : 'Total Summary (ยอดสต็อกรวม)' }}
               </h5>
               <p class="h5 timestamp text-left  ">รวมชิ้นส่วนไม้ที่มีทั้งหมด: </p>
-              <div ref="totalChartRef" style="width: 100%; flex-grow: 1; min-height: 400px;"></div>
+              
+              <div ref="totalChartRef" id="totalChartRef" class="responsive-chart-container" style="width: 100%; flex-grow: 1; min-height: 400px;"></div>
             </div>
           </div>
 
@@ -336,6 +337,7 @@ export default {
       chartInstances: [],
       totalChartInstance: null,
       isLoading: true,
+      resizeObserver: null, // เพิ่มตัวแปรสำหรับ ResizeObserver
 
       // Production Yield States
       YIELD_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpJBH3HzXDIWC0B_WuHdAfSJiyZPfMTVldJVcH9b4LNStGfZpUewPPEjfHIvIowGua2fhdOApJT1E4/pub?output=csv',
@@ -423,10 +425,8 @@ export default {
       return [...new Set(colors)].sort();
     },
     paginatedYieldItems() {
-      
       const start = (this.currentPage - 1) * this.perPage;
       const end = start + this.perPage;
-      
       return this.filteredYieldItems.slice(start, end);
     }
   },
@@ -434,14 +434,21 @@ export default {
     this.updateTime();
     setInterval(this.updateTime, 1000);
     
-    // Init Dashboard
     await this.fetchData();
-    window.addEventListener('resize', this.handleResize);
 
     // Init Yield Report
     this.setupYearSelect();
     this.updateYieldOptions();
     this.fetchAndSortProductionData();
+  },
+  beforeDestroy() {
+    // ยกเลิกการติดตามขนาดกล่องเพื่อป้องกัน Memory Leak
+    if (this.resizeObserver && this.$refs.totalChartRef) {
+      this.resizeObserver.unobserve(this.$refs.totalChartRef);
+    }
+    if (this.totalChartInstance) {
+      this.totalChartInstance.dispose();
+    }
   },
   methods: {
     // --- DASHBOARD METHODS ---
@@ -508,16 +515,16 @@ export default {
       this.renderAllCharts();
     },
     renderAllCharts() {
-      if (this.totalChartInstance) { this.totalChartInstance.dispose(); this.totalChartInstance = null; }
+      if (this.totalChartInstance) { 
+        this.totalChartInstance.dispose(); 
+        this.totalChartInstance = null; 
+      }
       setTimeout(() => {
         this.initTotalChart();
-      }, 200);
+      }, 100);
     },
-    initTotalChart() {
-      const container = this.$refs.totalChartRef;
-      if (!container) return;
-      this.totalChartInstance = echarts.init(container);
-      
+    
+    getSortedChartData() {
       const finalData = [];
       const usedCodes = new Set();
       
@@ -528,56 +535,93 @@ export default {
         }
       });
       
-      const sortedData = finalData.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
-      this.totalChartInstance.setOption(this.getPieOption(sortedData), true);
+      return finalData.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
     },
 
+    initTotalChart() {
+      const container = this.$refs.totalChartRef;
+      if (!container) return;
+      
+      if (!this.totalChartInstance) {
+        this.totalChartInstance = echarts.init(container);
+      }
 
+      // เซ็ต Observer เพื่อดักจับตอนกล่องเปลี่ยนขนาด (แก้ปัญหา Sidebar และ Maximize หน้าจอ)
+      if (!this.resizeObserver) {
+        this.resizeObserver = new ResizeObserver(() => {
+          if (this.totalChartInstance && this.$refs.totalChartRef) {
+            this.totalChartInstance.resize();
+            this.updateChartResponsive();
+          }
+        });
+        this.resizeObserver.observe(container);
+      }
+      
+      this.updateChartResponsive();
+    },
 
-    getPieOption(data) {
+    updateChartResponsive() {
+      const container = this.$refs.totalChartRef;
+      if (!container || !this.totalChartInstance) return;
+
+      // คำนวณความกว้างจากกล่องที่ใส่กราฟจริงๆ ไม่ใช่ความกว้างจอ
+      const containerWidth = container.clientWidth;
+      const isMobile = containerWidth < 450; 
+
+      const sortedData = this.getSortedChartData();
+      
+      // อัปเดตการตั้งค่าแบบ Smooth
+      this.totalChartInstance.setOption(this.getPieOption(sortedData, isMobile), false);
+    },
+
+    getPieOption(data, isMobile) {
       return {
-        tooltip: { 
-          trigger: 'item', 
-          formatter: '{b} <br/>สต็อก: <b>{c}</b> ชิ้น ({d}%)', 
+        // ⚡️ เพิ่ม 2 บรรทัดนี้ เพื่อจัดการความไว
+        animationDuration: 800,       // ตอนโหลดเปิดหน้าเว็บครั้งแรก ให้มีแอนิเมชันเด้งขึ้นมาตามปกติ
+        animationDurationUpdate: 0,   // 🔥 ตอนย่อ/ขยายจอ หรือเปิดปิดเมนู ให้จัดเลย์เอาต์ทันที (0 วินาที) ห้ามสไลด์
+
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b} <br/>สต็อก: <b>{c}</b> ชิ้น ({d}%)',
           confine: true 
         },
-        legend: { 
-          type: 'scroll', 
-          orient: 'vertical', 
-          right: '1%',       // วางแถบอธิบายชิดขวา
-          top: 'center',
-          itemWidth: 16,     // ขยายขนาดไอคอนสีให้ใหญ่ขึ้น
-          itemHeight: 16,
-          textStyle: { 
-            fontSize: 12, 
-            color: '#6e6b7b' 
+        legend: {
+          type: 'scroll',
+          orient: isMobile ? 'horizontal' : 'vertical',
+          bottom: isMobile ? '0%' : 'auto', 
+          top: isMobile ? 'auto' : 'middle', 
+          left: isMobile ? 'center' : '55%', 
+          right: isMobile ? 'auto' : '2%', 
+          width: isMobile ? '95%' : '35%', 
+          itemWidth: 12,
+          itemHeight: 12,
+          pageIconSize: 10,
+          textStyle: {
+            fontSize: 11,
+            color: '#6e6b7b',
+            width: isMobile ? 120 : 130, 
+            overflow: 'truncate'
           },
-          tooltip: {
-            show: true       // เพิ่ม Tooltip ให้ Legend เผื่อชื่อโดนตัด
-          },
-          formatter: function (name) {
-            // ตัดคำที่ยาวเกิน 22 ตัวอักษรใส่ ... ป้องกันไม่ให้ข้อความดันไปทับกราฟวงกลม
-            return name.length > 40 ? name.substring(0, 40) + '...' : name;
-          }
+          tooltip: { show: true }
         },
         series: [{
           type: 'pie',
-          radius: ['10%', '85%'], 
-          center: ['35%', '50%'], 
-          avoidLabelOverlap: false,
+          radius: isMobile ? ['30%', '50%'] : ['35%', '65%'], 
+          center: isMobile ? ['50%', '40%'] : ['25%', '50%'], 
+          avoidLabelOverlap: true,
           itemStyle: {
-            borderRadius: 5, // เพิ่มความมนให้ชิ้นโดนัท
+            borderRadius: 4,
             borderColor: '#fff',
             borderWidth: 2
           },
           label: { show: false },
-          emphasis: { 
-            label: { 
-              show: true, 
-              fontSize: '18', 
-              fontWeight: 'bold', 
-              formatter: '{c}\nชิ้น' 
-            } 
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: '16',
+              fontWeight: 'bold',
+              formatter: '{c}'
+            }
           },
           data: data
         }]
@@ -587,9 +631,6 @@ export default {
       this.sapInput = ""; 
       this.showSuggestions = false;
       this.processDisplay(); 
-    },
-    handleResize() {
-      if (this.totalChartInstance) this.totalChartInstance.resize();
     },
 
     // --- PRODUCTION YIELD METHODS ---
@@ -702,7 +743,6 @@ export default {
 .chart-card:hover { transform: translateY(-3px); }
 
 /* Autocomplete */
-/* Autocomplete */
 .custom-autocomplete {
   position: absolute; 
   top: 100%; 
@@ -739,5 +779,11 @@ export default {
 
 @media (max-width: 992px) {
   .stats-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .responsive-chart-container {
+    min-height: 480px !important;
+  }
 }
 </style>
