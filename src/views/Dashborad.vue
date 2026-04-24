@@ -13,7 +13,7 @@
             <h3>เป้าหมายรายวัน</h3>
           </div>
           <p class="stat-value">{{ dailyTarget.toLocaleString() }}</p>
-          <p class="stat-label text-muted">เป้าหมายที่ตั้งไว้ (หน่วย)</p>
+          <p class="stat-label text-muted">เป้าหมายที่ตั้งไว้ (บาท)</p>
         </div>
       </div>
 
@@ -39,9 +39,14 @@
           <p class="stat-value" :class="(alreadyProduced - dailyTarget) >= 0 ? 'text-success' : 'text-danger'">
             {{ (alreadyProduced - dailyTarget).toLocaleString() }}
           </p>
-          <p class="stat-label text-muted">เปรียบเทียบจากเป้าหมายวันนี้</p>
+          <p class="stat-label text-muted">เปรียบเทียบจากเป้าหมายรายวัน</p>
         </div>
       </div>
+    </div>
+
+    <div class="section-title-wrapper mb-3">
+      <h2 class="section-title">สรุปสต็อกจำนวนสินค้า (Stock Summary)</h2>
+      <div class="section-underline"></div>
     </div>
 
     <div class="search-card shadow-sm mb-4 bg-white p-4" style="border-radius: 12px;">
@@ -58,20 +63,13 @@
             @blur="handleBlur"
             @keyup.enter="processDisplay"
           >
-          
           <ul v-if="showSuggestions && filteredSuggestions.length > 0" class="custom-autocomplete shadow">
-            <li 
-              v-for="(item, index) in filteredSuggestions" 
-              :key="index" 
-              @mousedown.prevent="selectSuggestion(item)"
-              class="autocomplete-item"
-            >
+            <li v-for="(item, index) in filteredSuggestions" :key="index" @mousedown.prevent="selectSuggestion(item)" class="autocomplete-item">
               <span class="font-weight-bold" style="color: #7367f0;">{{ item.sap }}</span>
               <span v-if="item.prod" class="text-muted small ml-2">| {{ item.prod }}</span>
             </li>
           </ul>
         </div>
-
         <div class="d-flex">
           <button @click="processDisplay" class="btn btn-primary px-4 mr-3 custom-btn-search">search</button>
           <button @click="resetSearch" class="btn btn-outline-secondary px-4 custom-btn-seeall">see all</button>
@@ -84,185 +82,151 @@
         <div class="spinner-border text-primary" role="status"></div>
         <p class="mt-3 font-weight-bold text-primary">Loading Charts...</p>
       </div>
-
       <div v-else>
-        <div v-show="displayList.length > 0" class="row mb-4">
-          <div class="col-12">
-            <div class="chart-card shadow-sm p-4 bg-white border" 
-                 style="border-radius: 12px; border-top: 5px solid #28c76f !important;">
-              
-              <h5 class="font-weight-bold text-success mb-4 text-center">
-                {{ isSearching ? 'สรุปยอดสต็อกตามการค้นหา' : 'สรุปยอดสต็อกรวมทั้งหมด (Total Summary)' }}
-              </h5>
-              
-              <div class="row align-items-start">
-                <div class="col-lg-6 col-md-12 border-right">
-                  <div ref="totalChartRef" style="width: 100%; height: 400px;"></div>
-                </div>
-
-                <div class="col-lg-6 col-md-12">
-                  <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-sm table-hover border-bottom">
-                      <thead class="bg-light sticky-top" style="z-index: 1;">
-                        <tr>
-                          <th class="small font-weight-bold py-2">รายละเอียดสินค้า</th>
-                          <th class="small font-weight-bold text-right py-2" style="width: 120px;">คงเหลือ (หน่วย)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="(item, idx) in stockTableData" :key="idx">
-                          <td class="small py-2">
-                            <div class="font-weight-bold text-dark">{{ item.name }}</div>
-                            <code class="text-muted" style="font-size: 0.75rem;">{{ item.code }}</code>
-                          </td>
-                          <td class="small py-2 text-right font-weight-bold text-primary">
-                            {{ item.value.toLocaleString() }}
-                          </td>
-                        </tr>
-                      </tbody>
-                      <tfoot class="bg-light font-weight-bold">
-                        <tr>
-                          <td class="small py-2 text-center">รวมทั้งสิ้น</td>
-                          <td class="small py-2 text-right text-success" style="font-size: 1rem;">
-                            {{ stockTableData.reduce((sum, i) => sum + i.value, 0).toLocaleString() }}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
+        <div v-show="displayList.length > 0" class="chart-card shadow-sm p-4 bg-white border" style="border-radius: 12px; border-top: 5px solid #28c76f !important;">
+          <h5 class="font-weight-bold text-success mb-4 text-center">
+            {{ isSearching ? 'สรุปยอดสต็อกตามการค้นหา' : 'สรุปยอดสต็อกชิ้นส่วนสินค้าทั้งหมด (Total Summary)' }}
+          </h5>
+          <div class="row align-items-start">
+            <div class="col-lg-6 col-md-12 border-right">
+              <div ref="totalChartRef" style="width: 100%; height: 400px;"></div>
+            </div>
+            <div class="col-lg-6 col-md-12">
+              <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover border-bottom">
+                  <thead class="bg-light sticky-top" style="z-index: 1;">
+                    <tr>
+                      <th class="small font-weight-bold py-2">รายละเอียดสินค้า</th>
+                      <th class="small font-weight-bold text-right py-2" style="width: 120px;">ชิ้น</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, idx) in stockTableData" :key="idx">
+                      <td class="small py-2">
+                        <div class="font-weight-bold text-dark">{{ item.name }}</div>
+                        <code class="text-muted" style="font-size: 0.75rem;">{{ item.code }}</code>
+                      </td>
+                      <td class="small py-2 text-right font-weight-bold text-dark">
+                        {{ item.value.toLocaleString() }}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot class="bg-light font-weight-bold">
+                    <tr>
+                      <td class="small py-2 text-center">ยอดสต็อกรวม</td>
+                      <td class="small py-2 text-right text-success" style="font-size: 1rem;">
+                        {{ stockChartData.reduce((sum, i) => sum + i.value, 0).toLocaleString() }}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
-          </div>
-        </div>
-        
-        <div v-if="displayList.length === 0" class="row">
-          <div class="col-12 text-center py-5">
-              <p class="text-muted">ไม่พบข้อมูลรหัส SAP/FG Code นี้ในระบบ</p>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="production-report-wrapper">
-      <b-card no-body class="p-2 shadow-sm border-0 production-report-container" style="border-radius: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h3 class="mb-0 text-primary font-weight-bolder"> รายงานยอดผลิต (Production Yield)</h3>
-            <small v-if="lastUpdate" class="text-muted">อัปเดตล่าสุด: {{ lastUpdate }}</small>
-          </div>
-          <div class="d-flex align-items-center">
-            <div class="text-right mr-3">
-              <small class="text-muted d-block font-weight-bold">รวมมูลค่าตามการกรอง</small>
-              <h4 class="mb-0 text-danger font-weight-bolder">{{ totalPriceFormatted }} บาท</h4>
-            </div>
-            <b-button 
-              variant="primary" 
-              @click="fetchAndSortProductionData" 
-              :disabled="yieldLoading"
-              v-ripple.400="'rgba(255, 255, 255, 0.15)'"
-              class="shadow-sm"
-            >
-              <span v-if="yieldLoading">Retrieving....</span>
-              <span v-else>Retrieve data</span>
-            </b-button>
-          </div>
+    <div class="section-title-wrapper mt-5 mb-4">
+      <div class="d-flex justify-content-between align-items-end">
+        <div>
+          <h2 class="section-title mb-1">Production Yield (รายงานยอดผลิต)</h2>
+          <p v-if="lastUpdate" class="text-muted small mb-0">อัปเดตล่าสุด: {{ lastUpdate }}</p>
         </div>
+        <div class="text-right">
+          <div class="mb-1">
+            <span class="text-muted small font-weight-bold">รวมมูลค่าตามการกรอง</span>
+            <h3 class="text-danger font-weight-bolder mb-0">{{ totalPriceFormatted }} บาท</h3>
+          </div>
+          <b-button variant="primary" @click="fetchAndSortProductionData" :disabled="yieldLoading" class="btn-retrieve shadow-sm">
+            {{ yieldLoading ? 'Retrieving...' : 'Retrieve data' }}
+          </b-button>
+        </div>
+      </div>
+    </div>
 
-        <b-row class="mb-3 bg-light mx-0 py-2 rounded border shadow-xs">
-          <b-col md="2" sm="6">
-            <b-form-group label="ปี" label-class="font-weight-bold small text-primary mb-0">
-              <b-form-select v-model="filters.year" :options="yearOptions" @change="updateYieldOptions" size="sm" class="custom-v-select" />
-            </b-form-group>
+    <div class="production-report-wrapper mb-5">
+      <div class="filter-container p-3 mb-4 shadow-sm bg-white">
+        <b-row>
+          <b-col md="2">
+            <label class="filter-label">ปี</label>
+            <b-form-select v-model="filters.year" :options="yearOptions" @change="handleFilterChange" size="sm" class="custom-select-ui" />
           </b-col>
-          <b-col md="2" sm="6">
-            <b-form-group label="เดือน" label-class="font-weight-bold small text-primary mb-0">
-              <b-form-select v-model="filters.month" @change="updateYieldOptions" size="sm" class="custom-v-select">
-                <option v-for="(m, index) in months" :key="index" :value="index + 1">{{ m }}</option>
-              </b-form-select>
-            </b-form-group>
+          <b-col md="2">
+            <label class="filter-label">เดือน</label>
+            <b-form-select v-model="filters.month" @change="handleFilterChange" size="sm" class="custom-select-ui">
+              <option v-for="(m, index) in months" :key="index" :value="index + 1">{{ m }}</option>
+            </b-form-select>
           </b-col>
-          <b-col md="5" sm="12">
-            <b-form-group label="เลือกช่วงสัปดาห์" label-class="font-weight-bold small text-primary mb-0">
-              <b-form-select v-model="filters.week" size="sm" class="custom-v-select">
-                <option value="all">ดูข้อมูลทั้งเดือน</option>
-                <option v-for="w in weekOptions" :key="w.value" :value="w.value">{{ w.text }}</option>
-              </b-form-select>
-            </b-form-group>
+          <b-col md="5">
+            <label class="filter-label">เลือกช่วงสัปดาห์</label>
+            <b-form-select v-model="filters.week" @change="handleFilterChange" size="sm" class="custom-select-ui">
+              <option value="all">ดูข้อมูลทั้งเดือน</option>
+              <option v-for="w in weekOptions" :key="w.value" :value="w.value">{{ w.text }}</option>
+            </b-form-select>
           </b-col>
-          <b-col md="3" sm="6">
-            <b-form-group label="ระบุวันที่" label-class="font-weight-bold small text-primary mb-0">
-              <b-form-select v-model="filters.day" size="sm" class="custom-v-select">
-                <option value="all">ทั้งหมด</option>
-                <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
-              </b-form-select>
-            </b-form-group>
+          <b-col md="3">
+            <label class="filter-label">ระบุวันที่</label>
+            <b-form-select v-model="filters.day" @change="handleFilterChange" size="sm" class="custom-select-ui">
+              <option value="all">ทั้งหมด </option>
+              <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
+            </b-form-select>
           </b-col>
         </b-row>
+      </div>
 
-        <div class="table-responsive rounded border shadow-sm bg-white">
-          <table class="table table-hover mb-0 vuexy-table">
-            <thead class="bg-light text-secondary small font-weight-bold"> 
-              <tr>
+      <div class="table-container shadow-sm bg-white">
+        <div class="table-responsive">
+          <table class="table table-custom mb-0">
+            <thead>
+              <tr class="header-row">
                 <th style="width: 40px;">#</th>
-                <th style="width: 80px;">เวลา</th>
-                <th style="width: 100px;">วันที่</th>
-                <th style="width: 130px;">
-                  ใบผลิต (MO)
-                  <b-form-input v-model="colFilters.moNo" size="sm" placeholder="Search..." class="mt-1 mt-input" />
-                </th>
-                <th style="width: 150px;">
-                  รหัสสินค้า
-                  <b-form-input v-model="colFilters.pCode" size="sm" placeholder="Search..." class="mt-1 mt-input" />
-                </th>
+                <th style="width: 70px;">เวลา</th>
+                <th style="width: 90px;">วันที่</th>
+                <th style="width: 120px;">ใบผลิต (MO)</th>
+                <th style="width: 170px;">รหัสสินค้า</th>
+                <th style="width: 150px;">รายละเอียดสินค้า</th>
+                <th style="width: 110px;">สี</th>
+                <th style="width: 70px;" class="text-right">จำนวน</th>
+                <th style="width: 90px;" class="text-right">มูลค่า (บาท)</th>
+              </tr>
+              <tr class="filter-row">
+                <th></th><th></th><th></th>
+                <th><b-form-input v-model="colFilters.moNo" @input="currentPage = 1" size="sm" placeholder="กรอง MO..." class="table-filter-input" /></th>
+                <th><b-form-input v-model="colFilters.pCode" @input="currentPage = 1" size="sm" placeholder="กรองรหัส..." class="table-filter-input" /></th>
+                <th><b-form-input v-model="colFilters.pDesc" @input="currentPage = 1" size="sm" placeholder="ชื่อรายการ..." class="table-filter-input" /></th>
                 <th>
-                  รายละเอียดสินค้า
-                  <b-form-input v-model="colFilters.pDesc" size="sm" placeholder="Search..." class="mt-1 mt-input" />
-                </th>
-                <th style="width: 120px;">
-                  สี
-                  <b-form-select v-model="colFilters.color" size="sm" class="mt-1 mt-input">
+                  <b-form-select v-model="colFilters.color" @change="currentPage = 1" size="sm" class="table-filter-input">
                     <option value="">ทั้งหมด</option>
                     <option v-for="c in colorOptions" :key="c" :value="c">{{ c }}</option>
                   </b-form-select>
                 </th>
-                <th style="width: 100px;" class="text-right">จำนวน</th>
-                <th style="width: 120px;" class="text-right">มูลค่า (บาท)</th>
+                <th></th><th></th>
               </tr>
             </thead>
-
-            <tbody class="small font-weight-bold text-dark">
-              <tr v-if="yieldLoading" class="text-center">
-                <td colspan="9" class="py-5 text-muted">กำลังดึงข้อมูล...</td>
-              </tr>
-              <tr v-for="(item, index) in filteredYieldItems" :key="index" class="data-row">
-                <td class="text-center text-muted border-right">{{ index + 1 }}</td>
-                <td class="border-right"><span class="text-muted">{{ item.displayTime }}</span></td>
-                <td class="border-right">
-                  <b-badge variant="light-success" class="badge-sm">{{ item.displayDate }}</b-badge>
-                </td>
+            <tbody>
+              <tr v-if="yieldLoading" class="text-center"><td colspan="9" class="py-5">กำลังโหลดข้อมูล...</td></tr>
+              <tr v-for="(item, index) in paginatedItems" :key="index" class="data-row">
+                <td class="text-center text-muted border-right">{{ (filters.day === 'all' ? (currentPage - 1) * perPage : 0) + index + 1 }}</td>
+                <td class="border-right">{{ item.displayTime }}</td>
+                <td class="border-right text-dark">{{ item.displayDate }}</td>
                 <td class="border-right">{{ item.moNo }}</td>
-                <td class="border-right">
-                  <code class="text-danger bg-light-danger px-1 rounded">{{ item.pCode }}</code>
-                </td>
-                <td class="border-right desc-column text-truncate" style="max-width: 250px;">{{ item.pDesc }}</td>
+                <td class="border-right font-weight-bold text-dark">{{ item.pCode }}</td>
+                <td class="border-right text-truncate desc-column" :title="item.pDesc">{{ item.pDesc }}</td>
                 <td class="border-right">{{ item.color }}</td>
-                <td class="border-right text-right text-primary">{{ item.qty.toLocaleString() }}</td>
-                <td class="text-right font-weight-bolder">{{ item.priceStr }}</td>
-              </tr>
-              <tr v-if="filteredYieldItems.length > 0" class="summary-row bg-light">
-                <td colspan="8" class="text-right font-weight-bolder">รวมมูลค่าตามการกรอง:</td>
-                <td class="text-right text-danger font-weight-bolder" style="font-size: 1.1rem;">
-                  {{ totalPriceFormatted }}
-                </td>
-              </tr>
-              <tr v-if="!yieldLoading && filteredYieldItems.length === 0" class="text-center">
-                <td colspan="9" class="py-4 text-muted">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td>
+                <td class="border-right text-right font-weight-bold text-dark">{{ item.qty.toLocaleString() }}</td>
+                <td class="text-right font-weight-bold text-dark">{{ item.priceStr }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </b-card>
+        <div v-if="filters.day === 'all'" class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+          <div class="text-muted small">
+            แสดง {{ Math.min((currentPage - 1) * perPage + 1, filteredYieldItems.length) }} - {{ Math.min(currentPage * perPage, filteredYieldItems.length) }} จาก {{ filteredYieldItems.length }} รายการ
+          </div>
+          <b-pagination v-model="currentPage" :total-rows="filteredYieldItems.length" :per-page="perPage" size="sm" class="mb-0" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -271,342 +235,188 @@
 import * as echarts from 'echarts';
 import Papa from 'papaparse';
 import axios from 'axios';
-import { BCard, BRow, BCol, BButton, BFormGroup, BFormSelect, BBadge, BFormInput } from 'bootstrap-vue';
+import { BRow, BCol, BButton, BFormSelect, BFormInput, BPagination } from 'bootstrap-vue';
 import Ripple from 'vue-ripple-directive';
 
 export default {
   name: 'FullProductionDashboard',
-  components: { BCard, BRow, BCol, BButton, BFormGroup, BFormSelect, BBadge, BFormInput },
+  components: { BRow, BCol, BButton, BFormSelect, BFormInput, BPagination },
   directives: { Ripple },
   data() {
+    const now = new Date();
     return {
-      // Dashboard States
-      dailyTarget: 20000,
-      alreadyProduced: 3120,
+      dailyTarget: 20000, 
+      alreadyProduced: 3120, 
       currentTime: '',
       URL_1: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-sDov5Hl1nWrRBz9jCiiBeatitpYjZp0fqPYngNmvdY1teoDLQrhPBNkMZATc-rktKV37X2Q1qzkm/pub?output=csv",
       URL_2: "https://docs.google.com/spreadsheets/d/e/2PACX-1vShU_0KepJ0kBsIYP6zPhKVuZEE4TbCDyvx81yzPMBbdtO3SJp1kf1bRc4hbFfs4ErULD0oDyK39CkE/pub?output=csv",
-      sapInput: "",
-      showSuggestions: false,
-      isSearching: false,
-      masterList: [],
-      displayList: [],
-      stockDictionary: {},
-      totalChartInstance: null,
-      isLoading: true,
-
-      // Production Yield States
       YIELD_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpJBH3HzXDIWC0B_WuHdAfSJiyZPfMTVldJVcH9b4LNStGfZpUewPPEjfHIvIowGua2fhdOApJT1E4/pub?output=csv',
-      yieldLoading: false,
-      lastUpdate: '',
-      yieldItems: [],
-      filters: {
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-        week: 'all',
-        day: 'all'
+      sapInput: "", showSuggestions: false, isSearching: false, masterList: [], displayList: [], stockDictionary: {},
+      totalChartInstance: null, isLoading: true, yieldLoading: false, lastUpdate: '', yieldItems: [],
+      currentPage: 1, perPage: 15,
+      filters: { 
+        year: now.getFullYear(), 
+        month: now.getMonth() + 1, 
+        week: 'all', 
+        day: 'all' 
       },
-      colFilters: {
-        date: '',
-        moNo: '',
-        pCode: '',
-        pDesc: '',
-        color: ''
-      },
+      colFilters: { moNo: '', pCode: '', pDesc: '', color: '' },
       months: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
-      yearOptions: [],
-      dayOptions: [],
-      weekOptions: []
+      yearOptions: [], dayOptions: [], weekOptions: []
     };
   },
   computed: {
-    // Dashboard Logic
     filteredSuggestions() {
       const searchTxt = this.sapInput.trim().toLowerCase();
       if (!searchTxt) return [];
       const uniqueMap = new Map();
       this.masterList.forEach(item => {
-        if (item.sap && item.sap.trim() !== "") {
-          const sapStr = item.sap.toLowerCase();
-          if (sapStr.includes(searchTxt)) {
-            if (!uniqueMap.has(item.sap)) {
-              uniqueMap.set(item.sap, { sap: item.sap, prod: item.prod });
-            }
-          }
+        if (item.sap && item.sap.toLowerCase().includes(searchTxt)) {
+          if (!uniqueMap.has(item.sap)) uniqueMap.set(item.sap, { sap: item.sap, prod: item.prod });
         }
       });
       return Array.from(uniqueMap.values());
     },
-
-    // New Computed for Stock Table
-    stockTableData() {
-      const finalData = [];
-      const usedCodes = new Set();
+    stockChartData() {
+      const unique = []; const used = new Set();
       this.displayList.forEach(item => {
-        if (!usedCodes.has(item.code)) {
-          finalData.push({ code: item.code, name: item.name, value: item.value });
-          usedCodes.add(item.code);
-        }
+        if (!used.has(item.code)) { unique.push(item); used.add(item.code); }
       });
-      return finalData.filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+      return unique.sort((a, b) => b.value - a.value);
     },
-
-    // Production Yield Logic
+    stockTableData() { return this.stockChartData.slice(0, 20); },
     filteredYieldItems() {
-      return this.yieldItems.filter(item => {
-        return (
-          item.displayDate.toLowerCase().includes(this.colFilters.date.toLowerCase()) &&
-          item.moNo.toLowerCase().includes(this.colFilters.moNo.toLowerCase()) &&
-          item.pCode.toLowerCase().includes(this.colFilters.pCode.toLowerCase()) &&
-          item.pDesc.toLowerCase().includes(this.colFilters.pDesc.toLowerCase()) &&
-          (this.colFilters.color === '' || item.color === this.colFilters.color)
-        );
-      });
+      return this.yieldItems.filter(item => (
+        item.moNo.toLowerCase().includes(this.colFilters.moNo.toLowerCase()) &&
+        item.pCode.toLowerCase().includes(this.colFilters.pCode.toLowerCase()) &&
+        item.pDesc.toLowerCase().includes(this.colFilters.pDesc.toLowerCase()) &&
+        (this.colFilters.color === '' || item.color === this.colFilters.color)
+      ));
+    },
+    paginatedItems() {
+      if (this.filters.day !== 'all') return this.filteredYieldItems;
+      const start = (this.currentPage - 1) * this.perPage;
+      return this.filteredYieldItems.slice(start, start + this.perPage);
     },
     totalPriceFormatted() {
-      const total = this.filteredYieldItems.reduce((sum, item) => {
-        const val = parseFloat(item.priceStr.replace(/,/g, '')) || 0;
-        return sum + val;
-      }, 0);
+      const total = this.filteredYieldItems.reduce((sum, item) => sum + (parseFloat(item.priceStr.replace(/,/g, '')) || 0), 0);
       return total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
     },
-    colorOptions() {
-      const colors = this.yieldItems.map(i => i.color).filter(v => v && v !== '-');
-      return [...new Set(colors)].sort();
-    }
+    colorOptions() { return [...new Set(this.yieldItems.map(i => i.color).filter(v => v && v !== '-'))].sort(); }
   },
   async mounted() {
-    this.updateTime();
-    setInterval(this.updateTime, 1000);
-    await this.fetchData();
+    this.updateTime(); setInterval(this.updateTime, 1000);
+    await this.fetchData(); this.setupYearSelect(); this.updateYieldOptions(); this.fetchAndSortProductionData();
     window.addEventListener('resize', this.handleResize);
-    this.setupYearSelect();
-    this.updateYieldOptions();
-    this.fetchAndSortProductionData();
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.handleResize);
+    if (this.totalChartInstance) {
+      this.totalChartInstance.dispose();
+    }
   },
   methods: {
-    // --- DASHBOARD METHODS ---
-    updateTime() {
-      this.currentTime = new Date().toLocaleString('th-TH');
-    },
+    updateTime() { this.currentTime = new Date().toLocaleString('th-TH'); },
+    handleFilterChange() { this.currentPage = 1; this.updateYieldOptions(); this.fetchAndSortProductionData(); },
     async fetchData() {
       this.isLoading = true;
       try {
-        const [csv1, csv2] = await Promise.all([
-          fetch(this.URL_1).then(r => r.text()),
-          fetch(this.URL_2).then(r => r.text())
-        ]);
-
-        const stockRows = Papa.parse(csv2, { header: false, skipEmptyLines: true }).data;
-        this.stockDictionary = {};
-        stockRows.forEach((row, i) => {
-          if (i === 0) return;
-          const partCode = row[1] ? String(row[1]).trim() : ""; 
-          const stockVal = parseFloat(String(row[7]).replace(/,/g, ''));
-          if (partCode) this.stockDictionary[partCode] = isNaN(stockVal) ? 0 : stockVal;
-        });
-
-        const masterRows = Papa.parse(csv1, { header: false, skipEmptyLines: true }).data;
-        let lastSap = "", lastProd = "";
-        this.masterList = [];
-        masterRows.forEach((row, i) => {
-          if (i === 0) return;
-          if (row[0] && String(row[0]).trim() !== "") lastSap = String(row[0]).trim();
-          if (row[1] && String(row[1]).trim() !== "") lastProd = String(row[1]).trim();
-          const pCode = row[2] ? String(row[2]).trim() : "";
-          const pName = row[3] ? String(row[3]).trim() : pCode;
-          if (pCode) {
-            const qty = this.stockDictionary[pCode] || 0;
-            this.masterList.push({ sap: lastSap, prod: lastProd, code: pCode, name: pName, value: qty });
-          }
-        });
-        
-        this.displayList = [...this.masterList];
-        this.processDisplay(); 
-      } catch (err) {
-        console.error("Dashboard Fetch Error:", err);
-      } finally {
-        this.isLoading = false;
-      }
-    },
-    selectSuggestion(item) {
-      this.sapInput = item.sap; 
-      this.showSuggestions = false;
-      this.$nextTick(() => this.processDisplay());
-    },
-    handleBlur() {
-      setTimeout(() => { this.showSuggestions = false; }, 200);
+        const [csv1, csv2] = await Promise.all([fetch(this.URL_1).then(r => r.text()), fetch(this.URL_2).then(r => r.text())]);
+        const stockRows = Papa.parse(csv2).data;
+        stockRows.slice(1).forEach(row => { if (row[1]) this.stockDictionary[row[1].trim()] = parseFloat(String(row[7]).replace(/,/g, '')) || 0; });
+        let lSap = "", lProd = "";
+        this.masterList = Papa.parse(csv1).data.slice(1).map(row => {
+          if (row[0]?.trim()) lSap = row[0].trim(); if (row[1]?.trim()) lProd = row[1].trim();
+          return { sap: lSap, prod: lProd, code: row[2]?.trim(), name: row[3]?.trim(), value: this.stockDictionary[row[2]?.trim()] || 0 };
+        }).filter(i => i.code);
+        this.displayList = [...this.masterList]; this.renderAllCharts();
+      } catch (e) { console.error(e); } finally { this.isLoading = false; }
     },
     processDisplay() {
-      this.showSuggestions = false;
-      const search = this.sapInput.trim().toLowerCase();
-      this.isSearching = search !== "";
-      this.displayList = this.isSearching 
-        ? this.masterList.filter(item => item.sap && item.sap.toLowerCase() === search)
-        : this.masterList;
-      this.renderAllCharts();
+      const s = this.sapInput.trim().toLowerCase();
+      this.displayList = s ? this.masterList.filter(i => i.sap.toLowerCase() === s) : this.masterList;
+      this.isSearching = !!s; this.renderAllCharts();
     },
-    renderAllCharts() {
-      if (this.totalChartInstance) { this.totalChartInstance.dispose(); this.totalChartInstance = null; }
-      setTimeout(() => { this.initTotalChart(); }, 200);
+    renderAllCharts() { 
+      if (this.totalChartInstance) this.totalChartInstance.dispose(); 
+      setTimeout(() => this.initTotalChart(), 200); 
     },
     initTotalChart() {
-      const container = this.$refs.totalChartRef;
-      if (!container) return;
-      this.totalChartInstance = echarts.init(container);
-      const data = this.stockTableData;
-      this.totalChartInstance.setOption(this.getPieOption(data));
-    },
-    getPieOption(data) {
-      return {
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        legend: { 
-          orient: 'horizontal', 
-          bottom: '0', 
-          type: 'scroll',
-          textStyle: { fontSize: 10 }
-        },
-        series: [{
-          type: 'pie',
-          radius: ['35%', '65%'], 
-          center: ['50%', '45%'], 
-          avoidLabelOverlap: true,
+      if (!this.$refs.totalChartRef) return;
+      this.totalChartInstance = echarts.init(this.$refs.totalChartRef);
+      this.totalChartInstance.setOption({
+        animationDuration: 1000,
+        tooltip: { trigger: 'item' }, 
+        legend: { bottom: 0, type: 'scroll' },
+        series: [{ 
+          type: 'pie', 
+          radius: ['40%', '70%'], 
+          data: this.stockChartData, 
           label: { show: false },
-          emphasis: {
-            label: { show: true, fontWeight: 'bold' }
-          },
-          data: data
+          itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 }
         }]
-      };
+      });
     },
-    resetSearch() { 
-      this.sapInput = ""; 
-      this.showSuggestions = false;
-      this.processDisplay(); 
-    },
-    handleResize() {
-      if (this.totalChartInstance) this.totalChartInstance.resize();
-    },
-
-    // --- PRODUCTION YIELD METHODS ---
-    setupYearSelect() {
-      const cur = new Date().getFullYear();
-      this.yearOptions = [cur - 1, cur, cur + 1];
-    },
+    setupYearSelect() { const c = new Date().getFullYear(); this.yearOptions = [c - 1, c, c + 1]; },
     updateYieldOptions() {
-      const year = parseInt(this.filters.year);
-      const month = parseInt(this.filters.month) - 1;
-      const lastDate = new Date(year, month + 1, 0);
-      this.dayOptions = Array.from({ length: lastDate.getDate() }, (_, i) => i + 1);
-      this.weekOptions = [];
-      let current = new Date(year, month, 1);
-      let weekNum = 1;
-      while (current <= lastDate) {
-        let start = new Date(current);
-        let end = new Date(current);
-        end.setDate(current.getDate() + (6 - current.getDay()));
-        if (end > lastDate) end = new Date(lastDate);
-        this.weekOptions.push({
-          value: `${start.getDate()}|${end.getDate()}`,
-          text: `สัปดาห์ที่ ${weekNum} (${start.getDate().toString().padStart(2,'0')}/${(month+1).toString().padStart(2,'0')})`
-        });
-        current.setDate(end.getDate() + 1);
-        weekNum++;
+      const y = this.filters.year, m = this.filters.month - 1, last = new Date(y, m + 1, 0).getDate();
+      this.dayOptions = Array.from({ length: last }, (_, i) => i + 1);
+      this.weekOptions = []; let curr = new Date(y, m, 1), w = 1;
+      while (curr.getMonth() === m) {
+        let start = curr.getDate(), end = Math.min(start + (6 - curr.getDay()), last);
+        this.weekOptions.push({ value: `${start}|${end}`, text: `สัปดาห์ที่ ${w} (${start}/${m+1})` });
+        curr.setDate(end + 1); w++;
       }
     },
     async fetchAndSortProductionData() {
       this.yieldLoading = true;
       try {
         const res = await axios.get(`${this.YIELD_CSV_URL}&t=${Date.now()}`);
-        const lines = res.data.split(/\r?\n/);
-        let dStart = 1, dEnd = 31;
-        if (this.filters.day !== 'all') dStart = dEnd = parseInt(this.filters.day);
-        else if (this.filters.week !== 'all') [dStart, dEnd] = this.filters.week.split('|').map(Number);
-
-        let temp = [];
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
-          const cols = this.parseCSV(lines[i]);
-          const rawDate = cols[0] || "";
-          const datePart = rawDate.split(" ")[0];
-          if(!datePart.includes('/')) continue;
-          const [m, d, yRaw] = datePart.split('/').map(Number);
-          let y = yRaw < 2000 ? yRaw + 2000 : (yRaw > 2500 ? yRaw - 543 : yRaw);
-          if (y === this.filters.year && m === this.filters.month && d >= dStart && d <= dEnd) {
-            const price = parseFloat((cols[14] || "0").replace(/,/g, '')) || 0;
-            temp.push({
-              day: d,
-              displayDate: datePart,
-              displayTime: rawDate.split(" ")[1]?.substring(0,5) || "-",
-              moNo: cols[3] || "-",
-              pCode: cols[7] || "-",
-              pDesc: cols[8] || "-",
-              qty: parseInt((cols[9] || "0").replace(/,/g, '')) || 0,
-              color: cols[13] || "-",
-              priceStr: price.toLocaleString('th-TH', { minimumFractionDigits: 2 })
-            });
-          }
-        }
-        this.yieldItems = temp.sort((a, b) => a.day - b.day);
+        let ds = 1, de = 31;
+        if (this.filters.day !== 'all') ds = de = parseInt(this.filters.day);
+        else if (this.filters.week !== 'all') [ds, de] = this.filters.week.split('|').map(Number);
+        this.yieldItems = Papa.parse(res.data).data.slice(1).map(cols => {
+          const dt = cols[0]?.split(' ') || []; const dp = dt[0]?.split('/') || [];
+          const yRaw = parseInt(dp[2]); const y = yRaw < 2000 ? yRaw + 2000 : (yRaw > 2500 ? yRaw - 543 : yRaw);
+          return { y, m: parseInt(dp[0]), d: parseInt(dp[1]), displayDate: dt[0], displayTime: dt[1]?.substring(0,5), moNo: cols[3], pCode: cols[7], pDesc: cols[8], qty: parseInt(cols[9]?.replace(/,/g,'')) || 0, color: cols[13], priceStr: (parseFloat(cols[14]?.replace(/,/g,'')) || 0).toLocaleString('th-TH',{minimumFractionDigits:2}) };
+        }).filter(i => i.y === this.filters.year && i.m === this.filters.month && i.d >= ds && i.d <= de).sort((a,b) => a.d - b.d);
         this.lastUpdate = new Date().toLocaleString('th-TH');
-      } catch (err) { 
-        console.error("Yield Fetch Error:", err); 
-      } finally { 
-        this.yieldLoading = false; 
-      }
+      } catch (e) { console.error(e); } finally { this.yieldLoading = false; }
     },
-    parseCSV(text) {
-      const result = [];
-      let cur = '', inQuote = false;
-      for (let i = 0; i < text.length; i++) {
-        let char = text[i];
-        if (char === '"') inQuote = !inQuote;
-        else if (char === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
-        else cur += char;
-      }
-      result.push(cur.trim());
-      return result;
-    }
+    resetSearch() { this.sapInput = ""; this.processDisplay(); },
+    selectSuggestion(i) { this.sapInput = i.sap; this.showSuggestions = false; this.processDisplay(); },
+    handleBlur() { setTimeout(() => this.showSuggestions = false, 200); },
+    handleResize() { if (this.totalChartInstance) this.totalChartInstance.resize(); }
   }
 };
 </script>
 
 <style lang="scss" scoped>
-.dashboard-wrapper { padding: 15px; max-width: 1200px; margin: 0 auto; background: #f8f7fa; }
+/* CSS ดั้งเดิมของคุณทั้งหมด 100% */
+.dashboard-wrapper { padding: 20px; background: #f8f7fa; min-height: 100vh; font-family: 'Public Sans', sans-serif; }
+.section-title { font-size: 1.5rem; font-weight: 700; color: #5e5873; }
+.section-underline { height: 4px; width: 50px; background: #7367f0; border-radius: 10px; }
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.stat-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #ebe9f1; }
-.card-indicator { height: 5px; width: 100%; }
-.card-indicator.purple { background-color: #7367f0; }
-.card-indicator.green { background-color: #28c76f; }
-.card-indicator.red { background-color: #ea5455; }
-.stat-body { padding: 20px; }
-.stat-header h3 { font-size: 0.95rem; font-weight: 600; color: #5e5873; margin: 0; }
-.stat-value { font-size: 1.4rem; font-weight: 700; }
-.status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
-.bg-light-success { background: rgba(40, 199, 111, 0.12); color: #28c76f; }
-.bg-light-danger { background: rgba(234, 84, 85, 0.12); color: #ea5455; }
-.custom-btn-search { background-color: #7367f0 !important; border-color: #7367f0 !important; color: white; }
-.custom-btn-seeall { color: #6e6b7b; border-color: #d8d6de; }
-.chart-card { border: none !important; background: #fff; }
+.stat-card { background: white; border-radius: 12px; border: 1px solid #ebe9f1; overflow: hidden; transition: transform 0.2s; &:hover { transform: translateY(-5px); } }
+.card-indicator { height: 5px; width: 100%; background: #7367f0; &.green { background: #28c76f; } &.red { background: #ea5455; } }
+.stat-body { padding: 20px; .stat-value { font-size: 1.6rem; font-weight: 700; margin: 8px 0; } }
+.status-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+.bg-light-success { background: #e8f9ee; color: #28c76f; }
+.bg-light-danger { background: #ffeeef; color: #ea5455; }
+.custom-autocomplete { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d8d6de; z-index: 1000; border-radius: 6px; max-height: 250px; overflow-y: auto; }
+.autocomplete-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #f8f8f8; &:hover { background: #f8f7fa; } }
+.filter-container { border-radius: 12px; border: 1px solid #ebe9f1; }
+.filter-label { font-size: 0.8rem; font-weight: 600; color: #82868b; }
+.table-container { border-radius: 12px; border: 1px solid #ebe9f1; overflow: hidden; }
 
-.custom-autocomplete {
-  position: absolute; top: 100%; left: 0; right: 0; background-color: #ffffff; border: 1px solid #d8d6de;
-  border-radius: 0 0 6px 6px; z-index: 1000; max-height: 350px; overflow-y: auto;
-}
-.autocomplete-item { padding: 12px 15px; font-size: 0.95rem; cursor: pointer; border-bottom: 1px solid #ebe9f1; }
-.autocomplete-item:hover { background-color: #f8f7fa; color: #7367f0; }
-
-.production-report-container {
-  .vuexy-table {
-    table-layout: fixed; width: 100%;
-    th { font-size: 0.82rem; padding: 12px 10px; border: none; }
-    td { padding: 10px; border-bottom: 1px solid #ebe9f1; &.border-right { border-right: 1px solid #f3f2f7; } }
-    .mt-input { background-color: white; border: 1px solid #d8d6de; height: 30px !important; font-size: 0.75rem; }
-  }
+.table-custom { 
+  table-layout: fixed; width: 100%;
+  th { background: #f8f8f8; font-size: 0.8rem; color: #5e5873; padding: 12px; font-weight: 600; }
+  td { padding: 12px; font-size: 0.85rem; color: #000 !important; border-bottom: 1px solid #f3f2f7; vertical-align: middle; }
+  .desc-column { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
 }
 
-@media (max-width: 992px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .border-right { border-right: none !important; border-bottom: 1px solid #ebe9f1; margin-bottom: 20px; }
-}
+.table-filter-input { height: 32px !important; font-size: 0.75rem; border-color: #d8d6de; }
+.btn-retrieve { background: #7367f0 !important; border: none; font-weight: 600; }
+@media (max-width: 992px) { .stats-grid { grid-template-columns: 1fr; } }
 </style>
